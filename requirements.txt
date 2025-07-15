@@ -1,0 +1,11 @@
+beautifulsoup4
+chardet
+python-dateutil
+loguru
+Pillow
+PyCookieCloud
+requests
+PyYAML
+baidu-aip
+fuzzywuzzy
+python-Levenshtein

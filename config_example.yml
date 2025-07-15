@@ -1,0 +1,51 @@
+# 全局用户代理，模拟浏览器访问
+user-agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.63 Safari/537.36'
+
+# 是否备份cookie，以便在cookie失效时自动使用旧cookie
+cookie_backup: true
+
+# 百度OCR配置，用于需要验证码的站点
+aipocr:
+  app_id: '你的 app_id'
+  api_key: '你的 api_key'
+  secret_key: '你的 secret_key'
+
+# CookieCloud 配置
+cookie_cloud:
+  # CookieCloud 服务器地址
+  url: 'http://127.0.0.1:8088'
+  # CookieCloud 用户 UUID
+  uuid: '你的 uuid'
+  # CookieCloud 用户密码
+  password: '你的 password'
+
+# 通知配置
+notification:
+  telegram:
+    # Telegram Bot 的 Token
+    bot_token: '你的 bot_token'
+    # 接收通知的用户或频道的 Chat ID
+    chat_id: '你的 chat_id'
+    # 代理服务器地址, http/https/socks5, 不填则不使用
+    proxy: ''
+    # 通知内容的详细程度, 可选: site_name, status, message, hr, magic_power
+    notification_details:
+      - 'site_name'
+      - 'status'
+      - 'message'
+      - 'hr'
+      - 'magic_power'
+
+# 站点配置
+sites:
+  # 示例1：使用 CookieCloud 自动获取 cookie (推荐)
+  # 如果 use_cookie_cloud 为 true，将忽略下方手填的 cookie
+  m-team:
+    use_cookie_cloud: true
+    cookie: '如果 use_cookie_cloud 为 true，这里的内容会被忽略'
+
+  # 示例2：使用用户名和密码登录
+  greatposterwall:
+    login:
+      username: '你的用户名'
+      password: '你的密码'

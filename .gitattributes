@@ -1,0 +1,17 @@
+# 将所有文本文件的换行符在提交时统一为 LF
+# eol=lf 表示在检出文件时，也使用 LF 作为换行符
+* text=auto eol=lf
+
+# 你也可以为特定文件类型设置规则，例如：
+# *.txt       text
+# *.html      text
+# *.css       text
+# *.js        text
+
+# 对于明确需要CRLF的文件（如Windows批处理文件），可以单独指定
+# *.bat       text eol=crlf
+# *.cmd       text eol=crlf
+
+# 对于二进制文件，告诉Git不要动它们
+# *.png       binary
+# *.jpg       binary
