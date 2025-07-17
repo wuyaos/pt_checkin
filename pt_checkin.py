@@ -2,13 +2,11 @@ import argparse
 from pathlib import Path
 import yaml
 
-from dependency_injector.wiring import inject
 
 from ptsites.core.container import Container
 from ptsites.utils import logger, send_checkin_report, setup_logger
 
 
-@inject
 def process_signin_tasks(
     tasks,
     container: Container,
@@ -19,17 +17,8 @@ def process_signin_tasks(
     results = []
     logger.info(f"开始为 {len(tasks)} 个站点执行签到任务...")
     executor = container.executor()
-    db_manager = container.db_manager()
 
     for entry in tasks:
-        site_name = entry["site_name"]
-
-        if db_manager.has_signed_in_today(site_name):
-            results.append(
-                {"site_name": site_name, "status": "今日已签到", "details": "跳过"}
-            )
-            continue
-
         result = executor.execute_with_retry(entry)
         results.append(result)
 

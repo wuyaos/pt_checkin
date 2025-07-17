@@ -66,6 +66,10 @@ class Executor:
 
     def execute_with_retry(self, entry: SignInEntry) -> dict:
         site_name = entry["site_name"]
+
+        if self.db_manager.has_signed_in_today(site_name):
+            return {"site_name": site_name, "status": "今日已签到", "details": "跳过"}
+
         max_retries = self.config.get("user_config", {}).get("max_retries", 3)
         last_error = None
 
