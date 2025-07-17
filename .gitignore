@@ -9,6 +9,7 @@ config.yml
 *.so
 /data/
 .history/
+memory-bank/
 
 # Distribution / packaging
 .Python
