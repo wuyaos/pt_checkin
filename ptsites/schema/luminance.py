@@ -30,7 +30,9 @@ class Luminance(PrivateTorrent, ABC):
             }
         }
 
-    def sign_in_build_login_workflow(self, entry: SignInEntry, config: dict) -> list[Work]:
+    def sign_in_build_login_workflow(
+        self, entry: SignInEntry, config: dict
+    ) -> list[Work]:
         return [
             Work(
                 url='/login',
@@ -40,7 +42,7 @@ class Luminance(PrivateTorrent, ABC):
             Work(
                 url='/login',
                 method=self.sign_in_by_login,
-                succeed_regex=[r'''(?x)Logout | Kilpés'''],
+                succeed_regex=[r'Logout|Kilpés'],
                 assert_state=(check_final_state, SignState.SUCCEED),
                 is_base_content=True,
                 response_urls=['/'],
@@ -50,62 +52,44 @@ class Luminance(PrivateTorrent, ABC):
     @property
     def details_selector(self) -> dict:
         return {
-            'user_id': fr'''(?x)(?<= {re.escape('user.php?id=')})
-                                (. +?)
-                                (?= ")''',
+            'user_id': fr"(?<={re.escape('user.php?id=')})(.+?)(?=\")",
             'detail_sources': {
                 'default': {
                     'do_not_strip': True,
                     'link': '/user.php?id={}',
                     'elements': {
-                        'stats': '#content > div > div.sidebar > div:nth-child(4)',
+                        'stats': '#content > div > div.sidebar > div:nth-child(4)',  # noqa: E501
                         'credits': '#bonusdiv > h4',
-                        'connected': '#content > div > div.sidebar > div:nth-child(10)'
+                        'connected': '#content > div > div.sidebar > div:nth-child(10)',  # noqa: E501
                     }
                 }
             },
             'details': {
                 'uploaded': {
-                    'regex': r'''(?x)(?: Uploaded | Feltöltve):
-                                    \ 
-                                    ([\d.] +
-                                    \ 
-                                    [ZEPTGMK] ? i ? B)'''
+                    'regex': r'(?:Uploaded|Feltöltve): ([\d.]+ [ZEPTGMK]?i?B)'
                 },
                 'downloaded': {
-                    'regex': r'''(?x)(?: Downloaded | Letöltve):
-                                    \ 
-                                    ([\d.] +
-                                    \ 
-                                    [ZEPTGMK] ? i ? B)'''
+                    'regex': r'(?:Downloaded|Letöltve): ([\d.]+ [ZEPTGMK]?i?B)'
                 },
                 'share_ratio': {
-                    'regex': r'''(?x)(?: Ratio | Arány):\ <. *?>
-                                    (∞ | [\d,.] +)''',
+                    'regex': r'(?:Ratio|Arány): <.*?> (∞|[\d,.]+)',
                     'handle': handle_infinite
                 },
                 'points': {
-                    'regex': r'''(?x)(?: Credits | Bónuszpontok):
-                                    \s *
-                                    ([\d,.] +)'''
+                    'regex': r'(?:Credits|Bónuszpontok):\s*([\d,.]+)'
                 },
                 'join_date': {
-                    'regex': r'''(?x)(?: Joined | Regisztrált):
-                                    . *?
-                                    title="
-                                    ((\w + \ ) {2}
-                                    \w +)''',
+                    'regex': (
+                        r'(?:Joined|Regisztrált):.*?title="((\w+ ){2}\w+)'
+                    ),
                     'handle': handle_join_date
                 },
                 'seeding': {
-                    'regex': r'''(?x)(?<= Seeding:\ )
-                                    ([\d,] +)'''
+                    'regex': r'(?<=Seeding: )([\d,]+)'
                 },
                 'leeching': {
-                    'regex': r'''(?x)(?<= Leeching:\ )
-                                    ([\d,] +)'''
+                    'regex': r'(?<=Leeching: )([\d,]+)'
                 },
                 'hr': None
             }
         }
-

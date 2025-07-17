@@ -5,13 +5,16 @@ import pathlib
 import pkgutil
 from typing import List
 
-from ptsites.base.entry import SignInEntry
-from ptsites.base.sign_in import SignIn
-from ptsites.utils import logger
+from dependency_injector.wiring import Provide, inject
+
+from ..base.entry import SignInEntry
+from ..base.sign_in import SignIn
+from ..utils import logger
 
 
 class TaskManager:
-    def __init__(self, config: dict):
+    @inject
+    def __init__(self, config: dict = Provide[".container.Container.config"]):
         self.config = config
         self.sites_schema = self._build_sign_in_schema()
 

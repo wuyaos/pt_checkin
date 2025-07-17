@@ -38,7 +38,9 @@ class MainClass(PrivateTorrent):
             }
         }
 
-    def sign_in_build_login_workflow(self, entry: SignInEntry, config: dict) -> list[Work]:
+    def sign_in_build_login_workflow(
+        self, entry: SignInEntry, config: dict
+    ) -> list[Work]:
         return [
             Work(
                 url='/Home/Login?ReturnUrl=%2F',
@@ -55,52 +57,61 @@ class MainClass(PrivateTorrent):
             )
         ]
 
-    def sign_in_build_login_data(self, login: dict, last_content: str) -> dict:
+    def sign_in_build_login_data(
+        self, login: dict, last_content: str | None
+    ) -> dict:
+        if not last_content:
+            raise ValueError("last_content is not provided")
+        token_regex = r'(?<=name="__RequestVerificationToken" type="hidden" value=").*?(?=")'
+        token_match = re.search(token_regex, last_content)
+        if not token_match:
+            raise ValueError("Can not find __RequestVerificationToken")
         return {
             'Username': login['username'],
             'Password': login['password'],
             'RememberMe': ['true', 'false'],
-            '__RequestVerificationToken': re.search(
-                r'(?<=name="__RequestVerificationToken" type="hidden" value=").*?(?=")', last_content).group(),
+            '__RequestVerificationToken': token_match.group(),
         }
 
     @property
     def details_selector(self) -> dict:
+        points_selector = (
+            'div.navbar-collapse.collapse.d-sm-inline-flex > '
+            'ul:nth-child(6) > li:nth-child(3)'
+        )
+        stats_selector = (
+            'div.row.row-padding > div.col-lg-3 > '
+            'div:nth-child(2) > div.box-body'
+        )
         return {
             'detail_sources': {
                 'default': {
                     'link': '/User',
                     'elements': {
-                        'points': 'div.navbar-collapse.collapse.d-sm-inline-flex > ul:nth-child(6) > li:nth-child(3)',
-                        'stats': 'div.row.row-padding > div.col-lg-3 > div:nth-child(2) > div.box-body',
+                        'points': points_selector,
+                        'stats': stats_selector,
                     }
                 }
             },
             'details': {
                 'uploaded': {
-                    'regex': r'''(?x)Upload\ :\ 
-                                    ([\d,.] + \ [ZEPTGMK] ? o)''',
+                    'regex': r"Upload\s*:\s*([\d,.]+\s*[ZEPTGMK]?o)",
                     'handle': self.handle_amount_of_data
                 },
                 'downloaded': {
-                    'regex': r'''(?x)Download\ :\ 
-                                    ([\d,.] + \ [ZEPTGMK] ? o)''',
+                    'regex': r"Download\s*:\s*([\d,.]+\s*[ZEPTGMK]?o)",
                     'handle': self.handle_amount_of_data
                 },
                 'share_ratio': {
-                    'regex': r'''(?x)Ratio\ :\ 
-                                    (∞ | [\d,.] +)''',
+                    'regex': r"Ratio\s*:\s*(∞|[\d,.]+)",
                     'handle': self.handle_share_ratio
                 },
                 'points': {
-                    'regex': r'''(?x)Choco's\ :\ 
-                                    ([\d,.] +)''',
+                    'regex': r"Choco's\s*:\s*([\d,.]+)",
                     'handle': self.handle_points
                 },
                 'join_date': {
-                    'regex': r'''(?mx)Inscrit\ :\ 
-                                    (. +?)
-                                    $''',
+                    'regex': r"(?m)Inscrit\s*:\s*(.+?)$",
                     'handle': self.handle_join_date
                 },
                 'seeding': None,
@@ -119,10 +130,17 @@ class MainClass(PrivateTorrent):
         return value.replace(',', '.')
 
     def handle_join_date(self, value: str) -> datetime:
-        value_split = value.removeprefix('Il y a ').replace('et', '').replace('seconde', 'second') \
-            .replace('heure', 'hour').replace('jour', 'day').replace('semaine', 'week') \
-            .replace('mois', 'months').replace('an', 'year').replace('années', 'years').split()
-        return datetime.now() - relativedelta(**dict(
-            (unit if unit.endswith('s') else f'{unit}s', int(amount)) for amount, unit in
-            [value_split[i:i + 2] for i in range(0, len(value_split), 2)]))
+        value = value.removeprefix('Il y a ').replace('et', '')
+        value = value.replace('seconde', 'second').replace('heure', 'hour')
+        value = value.replace('jour', 'day').replace('semaine', 'week')
+        value = value.replace('mois', 'months').replace('an', 'year')
+        value_split = value.replace('années', 'years').split()
 
+        time_pairs = [
+            value_split[i:i + 2] for i in range(0, len(value_split), 2)
+        ]
+        kwargs = {
+            unit if unit.endswith('s') else f'{unit}s': int(amount)
+            for amount, unit in time_pairs
+        }
+        return datetime.now() - relativedelta(**kwargs)  # type: ignore

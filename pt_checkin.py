@@ -1,16 +1,50 @@
 import argparse
 from pathlib import Path
-from urllib.parse import urlparse
-
 import yaml
 
-from ptsites.core import Executor, SignInError, TaskManager
-from ptsites.data.database import DatabaseManager
-from ptsites.utils.cookie_cloud import CookieCloud
+from dependency_injector.wiring import inject
+
+from ptsites.core.container import Container
 from ptsites.utils import logger, send_checkin_report, setup_logger
 
 
+@inject
+def process_signin_tasks(
+    tasks,
+    container: Container,
+):
+    """
+    处理所有签到任务
+    """
+    results = []
+    logger.info(f"开始为 {len(tasks)} 个站点执行签到任务...")
+    executor = container.executor()
+    db_manager = container.db_manager()
+
+    for entry in tasks:
+        site_name = entry["site_name"]
+
+        if db_manager.has_signed_in_today(site_name):
+            results.append(
+                {"site_name": site_name, "status": "今日已签到", "details": "跳过"}
+            )
+            continue
+
+        result = executor.execute_with_retry(entry)
+        results.append(result)
+
+    logger.info("所有签到任务执行完毕。")
+    return results
+
+
 def main():
+    container = Container()
+    container.wire(modules=[
+        __name__,
+        "ptsites.core.task_manager",
+        "ptsites.core.executor",
+    ])
+
     parser = argparse.ArgumentParser(description="PT 自动签到脚本")
     parser.add_argument(
         "-f", "--file", type=str, default="config.yml", help="配置文件的路径"
@@ -27,122 +61,21 @@ def main():
     setup_logger(data_path)
 
     with open(config_path, "r", encoding="utf-8") as f:
-        config = yaml.safe_load(f)
+        config_data = yaml.safe_load(f)
+    container.config.from_dict(config_data)
+    container.config.data_path.from_value(str(data_path / 'data.db'))
 
-    db_manager = DatabaseManager(data_path / "data.db")
-    task_manager = TaskManager(config)
+    task_manager = container.task_manager()
 
     tasks = task_manager.build_tasks()
     if not tasks:
         logger.info("没有需要执行的签到任务。")
         return
 
-    executor = Executor(config, db_manager)
-
-    cookie_cloud_client = None
-    cookie_cloud_config = config.get("cookie_cloud")
-    if cookie_cloud_config:
-        cookie_cloud_client = CookieCloud(
-            cookie_cloud_config["url"],
-            cookie_cloud_config["uuid"],
-            cookie_cloud_config["password"],
-            data_path=data_path,
-        )
-
-    results = []
-    logger.info(f"开始为 {len(tasks)} 个站点执行签到任务...")
-
-    for entry in tasks:
-        site_name = entry["site_name"]
-
-        if db_manager.has_signed_in_today(site_name):
-            results.append(
-                {"site_name": site_name, "status": "今日已签到", "details": "跳过"}
-            )
-            continue
-
-        cookie = None
-        source = "配置"
-        use_cookie_cloud = entry.get("use_cookie_cloud", False)
-
-        if use_cookie_cloud and cookie_cloud_client:
-            cookie = db_manager.load_cookie(site_name)
-            source = "数据库"
-            if cookie is None:
-                try:
-                    domain = urlparse(entry["url"]).netloc
-                    cookie = cookie_cloud_client.get_cookies(domain=domain)
-                    source = "云端"
-                    if cookie:
-                        db_manager.save_cookie(site_name, cookie)
-                except (ValueError, AttributeError):
-                    logger.warning(
-                        f"无法为站点 {site_name} 获取 URL，无法从 CookieCloud 获取 cookie。"
-                    )
-
-        if not cookie:
-            cookie = entry.get("cookie")
-
-        if not cookie:
-            results.append(
-                {
-                    "site_name": site_name,
-                    "status": "失败",
-                    "details": "无法获取Cookie",
-                }
-            )
-            continue
-
-        entry["cookie"] = cookie
-
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                result = executor.execute(entry)
-                logger.info(f"站点 {site_name} 使用 {source} Cookie 签到成功。")
-                results.append({"site_name": site_name, **result})
-                break
-            except SignInError as e:
-                logger.warning(f"站点 {site_name} 第 {attempt + 1} 次尝试签到失败: {e}")
-                if (
-                    attempt < max_retries - 1
-                    and use_cookie_cloud
-                    and cookie_cloud_client
-                ):
-                    logger.info(f"尝试从云端强制获取 {site_name} 的新 Cookie...")
-                    try:
-                        domain = urlparse(entry["url"]).netloc
-                        new_cookie = cookie_cloud_client.get_cookies(
-                            domain=domain
-                        )
-                        if new_cookie:
-                            logger.success(
-                                f"成功从云端获取到 {site_name} 的新 Cookie。"
-                            )
-                            db_manager.save_cookie(site_name, new_cookie)
-                            entry["cookie"] = new_cookie
-                            source = "云端"
-                            continue
-                        else:
-                            logger.error(f"无法从云端获取 {site_name} 的新 Cookie。")
-                            break
-                    except (ValueError, AttributeError):
-                        logger.warning(
-                            f"无法为站点 {site_name} 获取 URL，"
-                            "无法从 CookieCloud 获取 cookie。"
-                        )
-                        break
-                elif attempt >= max_retries - 1:
-                    results.append(
-                        {
-                            "site_name": site_name,
-                            "status": "失败",
-                            "details": str(e),
-                        }
-                    )
-
-    logger.info("所有签到任务执行完毕。")
-    send_checkin_report(results, config)
+    results = process_signin_tasks(
+        tasks, container
+    )
+    send_checkin_report(results, container.config())
 
 
 if __name__ == "__main__":

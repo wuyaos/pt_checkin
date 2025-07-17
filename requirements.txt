@@ -9,3 +9,4 @@ PyYAML
 baidu-aip
 fuzzywuzzy
 python-Levenshtein
+dependency-injector

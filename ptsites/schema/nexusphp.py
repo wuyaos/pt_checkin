@@ -314,4 +314,3 @@ class Visit(VisitHR, ABC):
             }
         })
         return selector
-
