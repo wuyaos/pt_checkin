@@ -1,16 +1,12 @@
-# Created by .ignore support plugin (hsz.mobi)
-### Python template
-# Byte-compiled / optimized / DLL files
+.history/
+config.yml
 __pycache__/
 *.py[cod]
 *$py.class
-config.yml
-# C extensions
-*.so
-/data/
-.history/
 memory-bank/
-
+cookies_backup.json
+signin_status.json
+logs/
 # Distribution / packaging
 .Python
 build/
