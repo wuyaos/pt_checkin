@@ -18,7 +18,6 @@ on:
         required: false
         default: true
         type: boolean
-
       prerelease:
         description: '是否为预发布版本'
         required: false

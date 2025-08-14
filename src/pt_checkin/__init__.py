@@ -5,7 +5,7 @@ PT站点自动签到工具
 """
 
 __version__ = "0.1.0"
-__author__ = "ffwu"
+__author__ = "wuyaos"
 __email__ = ""
 __description__ = "PT站点自动签到工具 - 独立版本，移除FlexGet依赖"
 
