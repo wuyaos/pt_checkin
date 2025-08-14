@@ -35,7 +35,6 @@ jobs:
 
     permissions:
       contents: write  # 用于创建release
-      id-token: write  # 用于PyPI可信发布
 
     steps:
     - name: Checkout code
@@ -132,6 +131,8 @@ jobs:
       if: ${{ github.event.inputs.publish_pypi == 'true' }}
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
+        user: __token__
+        password: ${{ secrets.PYPI_API_TOKEN }}
         print-hash: true
         verbose: true
 

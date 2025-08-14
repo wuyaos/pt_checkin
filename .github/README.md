@@ -54,12 +54,22 @@ git push origin v1.2.0
 ## 🔧 配置要求
 
 ### PyPI发布配置
-- 在GitHub仓库设置中配置PyPI的可信发布
-- 或者在仓库Secrets中添加`PYPI_API_TOKEN`
+
+**必需配置**:
+1. 在PyPI网站生成API Token
+2. 在GitHub仓库设置 → Secrets and variables → Actions 中添加：
+   - Name: `PYPI_API_TOKEN`
+   - Value: 你的PyPI API Token (以`pypi-`开头)
+
+**获取PyPI API Token步骤**:
+1. 登录 [PyPI官网](https://pypi.org/)
+2. 进入 Account settings → API tokens
+3. 点击 "Add API token"
+4. 设置Token名称和权限范围
+5. 复制生成的Token到GitHub Secrets
 
 ### 权限要求
 - `contents: write` - 用于创建GitHub Release
-- `id-token: write` - 用于PyPI可信发布
 
 ## 📋 工作流状态
 
@@ -71,9 +81,13 @@ git push origin v1.2.0
 
 ### 常见问题
 
-- **PyPI发布失败**: 检查版本号是否重复，确保PyPI配置正确
+- **PyPI发布失败**:
+  - 检查`PYPI_API_TOKEN`是否正确配置
+  - 确认版本号是否重复（PyPI不允许重复版本）
+  - 验证API Token权限是否足够
 - **配置同步失败**: 检查ql分支是否存在，验证仓库权限
 - **构建失败**: 检查pyproject.toml配置，确保依赖正确
+- **Token权限错误**: 确保PyPI API Token有上传包的权限
 
 ### 调试方法
 
