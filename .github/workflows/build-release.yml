@@ -63,15 +63,30 @@ jobs:
           sed -i 's/version = ".*"/version = "'$VERSION'"/' pyproject.toml
           echo "已更新pyproject.toml中的版本号"
         else
-          # 从pyproject.toml自动获取版本号
-          VERSION=$(grep 'version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          # 从pyproject.toml自动获取版本号，使用Python解析
+          VERSION=$(python -c "import re; content=open('pyproject.toml').read(); match=re.search(r'^version\s*=\s*[\"\'](.*?)[\"\']', content, re.MULTILINE); print(match.group(1) if match else '')")
+
+          # 如果Python解析失败，使用sed备用方案
+          if [ -z "$VERSION" ]; then
+            echo "Python解析失败，使用sed备用方案"
+            VERSION=$(sed -n 's/^version = "\(.*\)"$/\1/p' pyproject.toml | head -1)
+          fi
+
           echo "从pyproject.toml获取版本号: $VERSION"
+        fi
+
+        # 验证版本号格式
+        if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+$ ]]; then
+          echo "❌ 版本号格式不正确: $VERSION"
+          echo "预期格式: x.y.z 或 x.y"
+          exit 1
         fi
 
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "tag_name=v$VERSION" >> $GITHUB_OUTPUT
-        echo "最终版本号: $VERSION"
-        grep 'version = ' pyproject.toml
+        echo "✅ 最终版本号: $VERSION"
+        echo "📋 当前pyproject.toml中的version行:"
+        grep '^version = ' pyproject.toml
 
     - name: Build wheel and source distribution
       run: |
