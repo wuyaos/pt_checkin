@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pt-checkin"
-version = "1.1.0"
+version = "0.1.0"
 description = "PT站点自动签到工具 - 独立版本，移除FlexGet依赖"
 readme = "README.md"
 license = {text = "MIT"}
