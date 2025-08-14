@@ -11,7 +11,7 @@ from ..utils import net_utils
 from ..utils.net_utils import get_module_name
 
 
-class MainClass(NexusPHP, ReseedPage):
+class MainClass(NexusPHP):
     URL: Final = 'https://hdcity.work/'
     TORRENT_PAGE_URL: Final = urljoin(URL, '/t-{torrent_id}')
     DOWNLOAD_BASE_URL: Final = 'https://assets.hdcity.work/'

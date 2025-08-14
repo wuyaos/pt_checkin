@@ -22,7 +22,7 @@ except ImportError:
     Image = None
 
 
-class MainClass(NexusPHP, ReseedPage):
+class MainClass(NexusPHP):
     URL: Final = 'https://hdsky.me/'
     IMAGE_HASH_URL: Final = '/image_code_ajax.php'
     IMAGE_URL: Final = '/image.php?action=regimage&imagehash={}'
@@ -47,37 +47,55 @@ class MainClass(NexusPHP, ReseedPage):
             }
         }
 
-    @classmethod
     def sign_in_build_workflow(self, entry: SignInEntry, config: dict) -> list[Work]:
         return [
             Work(
                 url='/',
                 method=self.sign_in_by_get,
-                succeed_regex=['已签到'],
+                succeed_regex=['已签到', 'Showed Up'],
                 assert_state=(check_sign_in_state, SignState.NO_SIGN_IN),
                 is_base_content=True,
             ),
             Work(
                 url='/showup.php',
-                method=self.sign_in_by_ocr,
-                succeed_regex=['{"success":true,"message":\\d+}'],
-                fail_regex='{"success":false,"message":"invalid_imagehash"}',
+                method=self.sign_in_by_post,
+                succeed_regex=['已签到', 'Showed Up', 'success'],
+                fail_regex='失败|error|failed',
                 assert_state=(check_final_state, SignState.SUCCEED),
             ),
         ]
 
-    def sign_in_by_ocr(self, entry: SignInEntry, config: dict, work: Work, last_content: str) -> Response | None:
+    def sign_in_by_post(self, entry: SignInEntry, config: dict, work: Work,
+                        last_content: str | None = None) -> Response | None:
+        """简单的POST签到，不使用验证码"""
         data = {
-            'action': (None, 'new')
+            'action': 'showup'
+        }
+        return self.request(entry, 'post', work.url, data=data)
+
+    def sign_in_by_ocr(self, entry: SignInEntry, config: dict, work: Work, last_content: str) -> Response | None:
+        # 获取验证码hash
+        data = {
+            'action': 'new'
         }
         image_hash_url = urljoin(entry['url'], self.IMAGE_HASH_URL)
-        image_hash_response = self.request(entry, 'post', image_hash_url, files=data)
+        image_hash_response = self.request(entry, 'post', image_hash_url, data=data)
         image_hash_network_state = check_network_state(entry, image_hash_url, image_hash_response)
         if image_hash_network_state != NetworkState.SUCCEED:
             return None
         content = net_utils.decode(image_hash_response)
+        if not content:
+            entry.fail_with_prefix('Empty response content')
+            return None
 
-        if not (image_hash := json.loads(content)['code']):
+        try:
+            response_data = json.loads(content)
+            image_hash = response_data.get('code')
+        except (json.JSONDecodeError, KeyError) as e:
+            entry.fail_with_prefix(f'Invalid JSON response: {e}. Content: {content[:100]}...')
+            return None
+
+        if not image_hash:
             entry.fail_with_prefix('Cannot find: image_hash')
             return None
         image_url = urljoin(entry['url'], self.IMAGE_URL)
@@ -89,12 +107,13 @@ class MainClass(NexusPHP, ReseedPage):
         img = Image.open(BytesIO(img_response.content))
         code, img_byte_arr = baidu_ocr.get_ocr_code(img, entry, config)
         if code and len(code) == 6:
+            # 提交签到
             data = {
-                'action': (None, 'showup'),
-                'imagehash': (None, image_hash),
-                'imagestring': (None, code)
+                'action': 'showup',
+                'imagehash': image_hash,
+                'imagestring': code
             }
-            return self.request(entry, 'post', work.url, files=data)
+            return self.request(entry, 'post', work.url, data=data)
         return None
 
     @property
