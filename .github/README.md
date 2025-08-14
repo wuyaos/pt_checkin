@@ -7,25 +7,32 @@
 ### 构建发布工作流 (`build-release.yml`)
 - **触发条件**: 手动执行，项目更新时执行(已注释)
 - **功能**:
-  1. **编译打包**: 构建wheel文件和源码包
-  2. **发布到Release**: 创建GitHub Release并上传构建产物
-  3. **上传PyPI**: 自动发布到Python包索引
-  4. **同步配置**: 将master分支的config_example.yml同步到ql分支
+  1. **版本管理**: 自动获取或手动指定版本号
+  2. **编译打包**: 构建wheel文件和源码包
+  3. **发布到Release**: 可选择创建GitHub Release并上传构建产物
+  4. **上传PyPI**: 可选择发布到Python包索引
+  5. **同步配置**: 将master分支的config_example.yml同步到ql分支
 - **手动参数**:
-  - `version`: 发布版本号 (例如: 1.2.0)
-  - `prerelease`: 是否为预发布版本
+  - `version`: 发布版本号 (留空则自动从pyproject.toml获取)
+  - `create_release`: 是否创建GitHub Release (默认: true)
+  - `publish_pypi`: 是否发布到PyPI (默认: true)
+  - `prerelease`: 是否为预发布版本 (默认: false)
 
 ## 🚀 使用指南
 
 ### 发布新版本
 
 #### 手动执行 (推荐)
+
 1. 进入GitHub仓库的Actions页面
 2. 选择"Build and Release"工作流
 3. 点击"Run workflow"
-4. 输入版本号 (例如: 1.2.0)
-5. 选择是否为预发布版本
-6. 点击"Run workflow"执行
+4. 配置参数：
+   - **版本号**: 留空则自动从pyproject.toml获取，或手动输入 (例如: 1.2.0)
+   - **创建Release**: 是否创建GitHub Release (默认: 是)
+   - **发布PyPI**: 是否发布到PyPI (默认: 是)
+   - **预发布版本**: 是否为预发布版本 (默认: 否)
+5. 点击"Run workflow"执行
 
 #### 自动执行 (已注释)
 ```bash
@@ -37,11 +44,12 @@ git push origin v1.2.0
 
 ### 工作流执行步骤
 
-1. **更新版本号**: 自动更新pyproject.toml中的版本
-2. **构建包**: 生成wheel文件和源码包
-3. **创建Release**: 在GitHub创建发布页面并上传构建产物
-4. **发布PyPI**: 自动上传到Python包索引
+1. **版本管理**: 自动获取或手动更新pyproject.toml中的版本号
+2. **构建包**: 生成wheel文件和源码包，并检查完整性
+3. **创建Release**: 可选择在GitHub创建发布页面并上传构建产物
+4. **发布PyPI**: 可选择自动上传到Python包索引
 5. **同步配置**: 将config_example.yml同步到ql分支
+6. **生成总结**: 显示执行结果和相关链接
 
 ## 🔧 配置要求
 

@@ -5,9 +5,19 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: '发布版本号 (例如: 1.2.0)'
-        required: true
+        description: '发布版本号 (留空则自动从pyproject.toml获取)'
+        required: false
         type: string
+      create_release:
+        description: '是否创建GitHub Release'
+        required: false
+        default: true
+        type: boolean
+      publish_pypi:
+        description: '是否发布到PyPI'
+        required: false
+        default: true
+        type: boolean
       prerelease:
         description: '是否为预发布版本'
         required: false
@@ -43,11 +53,25 @@ jobs:
         python -m pip install --upgrade pip
         pip install build twine wheel setuptools
 
-    - name: Update version in pyproject.toml
+    - name: Get version number
+      id: version
       run: |
-        VERSION="${{ github.event.inputs.version }}"
-        sed -i 's/version = ".*"/version = "'$VERSION'"/' pyproject.toml
-        echo "已更新版本号为: $VERSION"
+        if [ -n "${{ github.event.inputs.version }}" ]; then
+          # 使用手动输入的版本号
+          VERSION="${{ github.event.inputs.version }}"
+          echo "使用手动输入的版本号: $VERSION"
+          # 更新pyproject.toml中的版本号
+          sed -i 's/version = ".*"/version = "'$VERSION'"/' pyproject.toml
+          echo "已更新pyproject.toml中的版本号"
+        else
+          # 从pyproject.toml自动获取版本号
+          VERSION=$(grep 'version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "从pyproject.toml获取版本号: $VERSION"
+        fi
+
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "tag_name=v$VERSION" >> $GITHUB_OUTPUT
+        echo "最终版本号: $VERSION"
         grep 'version = ' pyproject.toml
 
     - name: Build wheel and source distribution
@@ -63,7 +87,7 @@ jobs:
     - name: Generate changelog
       id: changelog
       run: |
-        VERSION="v${{ github.event.inputs.version }}"
+        VERSION="${{ steps.version.outputs.tag_name }}"
         PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD 2>/dev/null || echo "")
 
         if [ -n "$PREVIOUS_TAG" ]; then
@@ -82,20 +106,21 @@ jobs:
 
         ### 📦 安装方式
         \`\`\`bash
-        pip install pt-checkin==${{ github.event.inputs.version }}
+        pip install pt-checkin==${{ steps.version.outputs.version }}
         \`\`\`
 
         ### 🔗 相关链接
-        - [PyPI包地址](https://pypi.org/project/pt-checkin/${{ github.event.inputs.version }}/)
-        - [使用文档](https://github.com/${{ github.repository }}/blob/v${{ github.event.inputs.version }}/README.md)
+        - [PyPI包地址](https://pypi.org/project/pt-checkin/${{ steps.version.outputs.version }}/)
+        - [使用文档](https://github.com/${{ github.repository }}/blob/${{ steps.version.outputs.tag_name }}/README.md)
         - [青龙面板支持](https://github.com/${{ github.repository }}/tree/ql)
         EOF
 
     - name: Create GitHub Release
+      if: ${{ github.event.inputs.create_release == 'true' }}
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: v${{ github.event.inputs.version }}
-        name: Release v${{ github.event.inputs.version }}
+        tag_name: ${{ steps.version.outputs.tag_name }}
+        name: Release ${{ steps.version.outputs.tag_name }}
         body_path: CHANGELOG.md
         files: |
           dist/*.whl
@@ -104,6 +129,7 @@ jobs:
         generate_release_notes: true
 
     - name: Publish to PyPI
+      if: ${{ github.event.inputs.publish_pypi == 'true' }}
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         print-hash: true
@@ -136,7 +162,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "配置文件无变化，跳过提交"
           else
-            git commit -m "sync: 发布 v${{ github.event.inputs.version }} 后同步配置文件"
+            git commit -m "sync: 发布 ${{ steps.version.outputs.tag_name }} 后同步配置文件"
             git push origin ql
             echo "✅ 配置文件同步完成"
           fi
@@ -147,17 +173,23 @@ jobs:
     - name: Create summary
       run: |
         cat >> $GITHUB_STEP_SUMMARY << EOF
-        ## 🎉 发布完成: v${{ github.event.inputs.version }}
+        ## 🎉 构建完成: ${{ steps.version.outputs.tag_name }}
 
         ### 📦 构建产物
         - Wheel: \`$(ls dist/*.whl | xargs basename)\`
         - Source: \`$(ls dist/*.tar.gz | xargs basename)\`
 
-        ### 🔗 发布地址
-        - [GitHub Release](https://github.com/${{ github.repository }}/releases/tag/v${{ github.event.inputs.version }})
-        - [PyPI Package](https://pypi.org/project/pt-checkin/${{ github.event.inputs.version }}/)
+        ### 🔗 执行结果
+        - GitHub Release: ${{ github.event.inputs.create_release == 'true' && '✅ 已创建' || '❌ 跳过' }}
+        - PyPI发布: ${{ github.event.inputs.publish_pypi == 'true' && '✅ 已发布' || '❌ 跳过' }}
+        - 配置同步: ✅ 已执行
 
-        ### 📋 下一步
-        - 用户可通过 \`pip install pt-checkin==${{ github.event.inputs.version }}\` 安装
-        - 青龙面板用户可切换到 \`ql\` 分支获取最新配置
+        ### 📋 访问链接
+        - [GitHub Release](https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag_name }})
+        - [PyPI Package](https://pypi.org/project/pt-checkin/${{ steps.version.outputs.version }}/)
+
+        ### 📋 安装命令
+        \`\`\`bash
+        pip install pt-checkin==${{ steps.version.outputs.version }}
+        \`\`\`
         EOF
