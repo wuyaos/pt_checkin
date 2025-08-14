@@ -3,17 +3,16 @@ from __future__ import annotations
 from typing import Final
 from urllib.parse import urljoin
 
-from flexget.entry import Entry
 
 from ..core.entry import SignInEntry
-# Removed reseed functionality
+
 from ..base.sign_in import SignState, check_final_state
 from ..base.work import Work
 from ..schema.gazelle import Gazelle
 from ..utils import net_utils
 
 
-class MainClass(Gazelle, Reseed):
+class MainClass(Gazelle):
     URL: Final = 'https://greatposterwall.com/'
     USER_CLASSES: Final = {
         'downloaded': [214748364800, 10995116277760],

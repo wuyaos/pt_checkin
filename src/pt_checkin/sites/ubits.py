@@ -1,7 +1,7 @@
 from typing import Final
 
 from ..core.entry import SignInEntry
-# Removed reseed functionality
+
 from ..schema.nexusphp import Attendance
 from ..utils import net_utils
 from ..utils.value_handler import size

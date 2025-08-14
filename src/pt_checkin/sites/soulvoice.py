@@ -6,7 +6,7 @@ from typing import Final
 from requests import Response
 
 from ..core.entry import SignInEntry
-# Removed reseed functionality
+
 from ..schema.nexusphp import AttendanceHR
 
 

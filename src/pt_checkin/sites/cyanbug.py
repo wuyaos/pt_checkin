@@ -1,6 +1,6 @@
 from typing import Final
 
-# Removed reseed functionality
+
 from ..schema.nexusphp import Attendance
 from ..utils import net_utils
 

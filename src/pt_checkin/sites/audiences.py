@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Final
 
-# Removed reseed functionalityCookie
+Cookie
 from ..schema.nexusphp import AttendanceHR
 from ..utils import net_utils
 

@@ -1,7 +1,7 @@
 from typing import Final
 
 from ..core.entry import SignInEntry
-# Removed reseed functionality
+
 from ..base.sign_in import SignState
 from ..base.sign_in import check_final_state
 from ..base.work import Work

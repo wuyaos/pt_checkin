@@ -1,7 +1,7 @@
 from typing import Final
 from urllib.parse import urljoin
 
-from flexget.utils.soup import get_soup
+from ..utils.soup import get_soup
 
 from ..core.entry import SignInEntry
 from ..base.request import check_network_state, NetworkState

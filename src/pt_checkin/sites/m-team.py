@@ -6,12 +6,11 @@ from typing import Final
 from urllib.parse import urljoin
 
 from dateutil.parser import parse
-from flexget.entry import Entry
 from requests import Response, request
 
 from ..core.entry import SignInEntry
 from ..base.request import NetworkState
-# Removed reseed functionality
+
 from ..base.sign_in import check_final_state, SignState, Work
 from ..schema.nexusphp import NexusPHP
 from ..utils import url_recorder
@@ -19,7 +18,7 @@ from ..utils.net_utils import get_module_name
 from ..utils.value_handler import handle_infinite
 
 
-class MainClass(NexusPHP, Reseed):
+class MainClass(NexusPHP):
     URL: Final = 'https://api.m-team.io/'
     PROFILE_URL = '/api/member/profile'
     MY_PEER_STATUS = '/api/tracker/myPeerStatus'

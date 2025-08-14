@@ -9,12 +9,12 @@ from urllib.parse import urljoin
 import numpy as np
 import requests
 from PIL import Image
-from flexget.utils.soup import get_soup
+from ..utils.soup import get_soup
 from loguru import logger
 
 from ..core.entry import SignInEntry
 from ..base.request import check_network_state, NetworkState
-# Removed reseed functionality
+
 from ..base.sign_in import check_final_state, SignState, check_sign_in_state
 from ..base.work import Work
 from ..schema.nexusphp import NexusPHP

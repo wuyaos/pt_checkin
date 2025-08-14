@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Final
 
-# Removed reseed functionality
+
 from ..schema.nexusphp import Attendance
 from ..utils import net_utils
 from ..utils.value_handler import size

@@ -8,7 +8,7 @@ from requests import Response
 
 from ..core.entry import SignInEntry
 from ..base.request import check_network_state, NetworkState
-# Removed reseed functionality
+
 from ..base.sign_in import SignState
 from ..base.sign_in import check_final_state
 from ..base.work import Work

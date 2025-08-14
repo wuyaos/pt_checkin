@@ -4,7 +4,7 @@ from typing import Final
 from urllib.parse import urljoin
 
 from ..core.entry import SignInEntry
-# Removed reseed functionalityPage
+Page
 from ..base.sign_in import check_final_state, SignState, Work
 from ..schema.nexusphp import NexusPHP
 from ..utils import net_utils

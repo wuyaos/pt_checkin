@@ -8,7 +8,7 @@ from requests.adapters import HTTPAdapter
 
 from ..core.entry import SignInEntry
 from ..base.request import cf_detected, NetworkState
-# Removed reseed functionality
+
 from ..schema.nexusphp import AttendanceHR
 from ..utils import net_utils
 from ..utils.value_handler import size

@@ -3,11 +3,10 @@ from __future__ import annotations
 from typing import Final
 from urllib.parse import urljoin
 
-from flexget.entry import Entry
 
 from ..core.entry import SignInEntry
 from ..base.request import check_network_state, NetworkState
-# Removed reseed functionality
+
 from ..base.sign_in import SignState
 from ..base.sign_in import check_final_state
 from ..base.work import Work
@@ -16,7 +15,7 @@ from ..utils import net_utils
 from ..utils.net_utils import get_module_name
 
 
-class MainClass(Gazelle, Reseed):
+class MainClass(Gazelle):
     URL: Final = 'https://dicmusic.com/'
     USER_CLASSES: Final = {
         'uploaded': [26843545600, 1319413953331],

@@ -4,12 +4,11 @@ import re
 from typing import Final
 from urllib.parse import urljoin
 
-from flexget.entry import Entry
-from flexget.utils.soup import get_soup
+from ..utils.soup import get_soup
 
 from ..core.entry import SignInEntry
 from ..base.request import check_network_state, NetworkState
-# Removed reseed functionality
+
 from ..base.sign_in import check_final_state, SignState, Work
 from ..schema.unit3d import Unit3D
 from ..utils import net_utils
@@ -17,7 +16,7 @@ from ..utils.net_utils import get_module_name
 from ..utils.value_handler import handle_join_date, handle_infinite
 
 
-class MainClass(Unit3D, Reseed):
+class MainClass(Unit3D):
     URL: Final = 'https://pt.hdpost.top'
     USER_CLASSES: Final = {
         'uploaded': [109951162777600],
