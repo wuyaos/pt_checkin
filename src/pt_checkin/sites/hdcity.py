@@ -7,7 +7,7 @@ from ..core.entry import SignInEntry
 # Removed reseed functionalityPage
 from ..base.sign_in import check_final_state, SignState, Work
 from ..schema.nexusphp import NexusPHP
-from utils import net_utils
+from ..utils import net_utils
 from ..utils.net_utils import get_module_name
 
 

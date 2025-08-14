@@ -4,7 +4,7 @@ from ..core.entry import SignInEntry
 # Removed reseed functionality
 from ..base.sign_in import check_sign_in_state, SignState, check_final_state, Work
 from ..schema.nexusphp import NexusPHP
-from utils import net_utils
+from ..utils import net_utils
 
 
 class MainClass(NexusPHP):

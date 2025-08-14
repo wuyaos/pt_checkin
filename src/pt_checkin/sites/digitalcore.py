@@ -7,7 +7,7 @@ from ..base.request import NetworkState, check_network_state
 from ..base.sign_in import SignState, check_final_state
 from ..base.work import Work
 from ..schema.private_torrent import PrivateTorrent
-from utils import net_utils
+from ..utils import net_utils
 
 
 class MainClass(PrivateTorrent):

@@ -3,7 +3,7 @@ from typing import Final
 from ..core.entry import SignInEntry
 from ..base.sign_in import check_final_state, SignState, Work
 from ..schema.gazelle import Gazelle
-from utils import net_utils
+from ..utils import net_utils
 
 
 class MainClass(Gazelle):

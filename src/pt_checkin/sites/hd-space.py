@@ -2,7 +2,7 @@ from typing import Final
 
 from ..core.entry import SignInEntry
 from ..schema.xbtit import XBTIT
-from utils import net_utils
+from ..utils import net_utils
 from ..utils.value_handler import handle_infinite
 
 

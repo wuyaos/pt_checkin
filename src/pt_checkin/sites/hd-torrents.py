@@ -2,7 +2,7 @@ from typing import Final
 
 # Removed reseed functionality
 from ..schema.xbtit import XBTIT
-from utils import net_utils
+from ..utils import net_utils
 
 
 class MainClass(XBTIT):

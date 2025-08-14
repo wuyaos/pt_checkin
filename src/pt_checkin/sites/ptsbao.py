@@ -2,7 +2,7 @@ from typing import Final
 
 # Removed reseed functionality
 from ..schema.nexusphp import VisitHR
-from utils import net_utils
+from ..utils import net_utils
 
 
 class MainClass(VisitHR):

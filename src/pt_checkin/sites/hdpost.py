@@ -12,7 +12,7 @@ from ..base.request import check_network_state, NetworkState
 # Removed reseed functionality
 from ..base.sign_in import check_final_state, SignState, Work
 from ..schema.unit3d import Unit3D
-from utils import net_utils
+from ..utils import net_utils
 from ..utils.net_utils import get_module_name
 from ..utils.value_handler import handle_join_date, handle_infinite
 

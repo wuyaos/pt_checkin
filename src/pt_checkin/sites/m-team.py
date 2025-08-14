@@ -14,7 +14,7 @@ from ..base.request import NetworkState
 # Removed reseed functionality
 from ..base.sign_in import check_final_state, SignState, Work
 from ..schema.nexusphp import NexusPHP
-from utils import url_recorder
+from ..utils import url_recorder
 from ..utils.net_utils import get_module_name
 from ..utils.value_handler import handle_infinite
 

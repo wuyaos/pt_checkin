@@ -11,7 +11,7 @@ from ..base.request import check_network_state, NetworkState
 # Removed reseed functionality
 from ..base.sign_in import check_final_state, SignState, Work
 from ..schema.discuz import Discuz
-from utils import google_auth
+from ..utils import google_auth
 from ..utils.net_utils import get_module_name
 
 

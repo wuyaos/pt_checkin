@@ -18,7 +18,7 @@ from ..base.request import check_network_state, NetworkState
 from ..base.sign_in import check_final_state, SignState, check_sign_in_state
 from ..base.work import Work
 from ..schema.nexusphp import NexusPHP
-from utils import net_utils
+from ..utils import net_utils
 
 
 class MainClass(NexusPHP):

@@ -14,7 +14,7 @@ from ..core.entry import SignInEntry
 from ..base.request import NetworkState, check_network_state
 from ..base.sign_in import SignState, check_sign_in_state, check_final_state
 from ..base.work import Work
-from utils import net_utils, baidu_ocr, dmhy_image
+from ..utils import net_utils, baidu_ocr, dmhy_image
 from ..utils.net_utils import get_module_name
 
 try:

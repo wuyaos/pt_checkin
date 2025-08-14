@@ -4,7 +4,7 @@ from typing import Final
 
 # Removed reseed functionalityCookie
 from ..schema.nexusphp import AttendanceHR
-from utils import net_utils
+from ..utils import net_utils
 
 
 class MainClass(AttendanceHR):

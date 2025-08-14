@@ -7,7 +7,7 @@ from ..core.entry import SignInEntry
 # Removed reseed functionality
 from ..base.sign_in import check_final_state, SignState, Work, check_sign_in_state
 from ..schema.nexusphp import Attendance
-from utils import net_utils
+from ..utils import net_utils
 
 
 class MainClass(Attendance):

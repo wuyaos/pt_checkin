@@ -13,8 +13,8 @@ from ..base.request import check_network_state, NetworkState
 from ..base.sign_in import check_final_state, SignState, check_sign_in_state
 from ..base.work import Work
 from ..schema.nexusphp import NexusPHP
-from utils import baidu_ocr
-from utils import net_utils
+from ..utils import baidu_ocr
+from ..utils import net_utils
 
 try:
     from PIL import Image
@@ -57,6 +57,17 @@ class MainClass(NexusPHP):
             entry.fail_with_prefix('Get image hash failed.')
             return None
         image_hash_content = net_utils.decode(image_hash_response)
+
+        # 调试：输出页面内容的前500个字符
+        from loguru import logger
+        logger.debug(f'Page content preview: {image_hash_content[:500]}')
+
+        # 检查是否被重定向到登录页面
+        login_indicators = ['未登錄!', '錯誤: 該頁面必須在登錄後才能訪問']
+        if any(indicator in image_hash_content for indicator in login_indicators):
+            entry.fail_with_prefix('Not logged in. Please provide valid cookie.')
+            return None
+
         image_hash_re = re.search('(?<=imagehash=).*?(?=")', image_hash_content)
         img_src_re = re.search('(?<=img src=").*?(?=")', image_hash_content)
 
@@ -70,7 +81,10 @@ class MainClass(NexusPHP):
                 entry.fail_with_prefix('Get image failed.')
                 return None
         else:
-            entry.fail_with_prefix('Cannot find key: image_hash')
+            entry.fail_with_prefix(
+                'Cannot find key: image_hash. '
+                'Page content may have changed or login required.'
+            )
             return None
 
         img = Image.open(BytesIO(img_response.content))
@@ -84,7 +98,9 @@ class MainClass(NexusPHP):
                     'imagehash': (None, image_hash),
                     'imagestring': (None, code)
                 }
-                return self.request(entry, 'post', work.url, files=data, params=params)
+                return self.request(
+                    entry, 'post', work.url, files=data, params=params
+                )
         return None
 
     @property
@@ -94,7 +110,10 @@ class MainClass(NexusPHP):
             'detail_sources': {
                 'default': {
                     'elements': {
-                        'bar': '#info_block > tbody > tr > td > table > tbody > tr > td:nth-child(2)'
+                        'bar': (
+                            '#info_block > tbody > tr > td > table > '
+                            'tbody > tr > td:nth-child(2)'
+                        )
                     }
                 }
             }
@@ -102,4 +121,6 @@ class MainClass(NexusPHP):
         return selector
 
     def get_messages(self, entry: SignInEntry, config: dict) -> None:
-        self.get_nexusphp_messages(entry, config, ignore_title=self.IGNORE_TITLE)
+        self.get_nexusphp_messages(
+            entry, config, ignore_title=self.IGNORE_TITLE
+        )

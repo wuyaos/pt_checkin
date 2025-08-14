@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 from .private_torrent import PrivateTorrent
 from ..core.entry import SignInEntry
 from ..base.request import check_network_state, NetworkState
-from utils import net_utils
+from ..utils import net_utils
 from ..utils.value_handler import handle_infinite
 
 

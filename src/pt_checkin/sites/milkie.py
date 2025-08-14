@@ -11,7 +11,7 @@ from ..core.entry import SignInEntry
 from ..base.request import check_network_state, NetworkState
 from ..base.sign_in import check_final_state, SignState, Work
 from ..schema.private_torrent import PrivateTorrent
-from utils import net_utils
+from ..utils import net_utils
 from ..utils.net_utils import get_module_name
 
 

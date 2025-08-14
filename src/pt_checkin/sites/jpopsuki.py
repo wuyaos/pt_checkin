@@ -5,7 +5,7 @@ from ..base.request import NetworkState
 from ..base.request import check_network_state
 from ..base.sign_in import check_final_state, SignState, Work
 from ..schema.gazelle import Gazelle
-from utils import net_utils
+from ..utils import net_utils
 from ..utils.net_utils import get_module_name
 
 
