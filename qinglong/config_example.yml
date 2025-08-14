@@ -4,7 +4,6 @@
 # 基础配置
 max_workers   : 1                    # 最大工作线程数
 user_agent    : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-schedule_time : '08:30'            # 定时签到时间 (24小时制)
 get_messages  : true                # 是否获取站点消息
 get_details   : true                 # 是否获取详细信息
 cookie_backup : true               # 是否备份Cookie
