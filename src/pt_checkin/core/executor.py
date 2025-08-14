@@ -153,6 +153,7 @@ def create_sign_in_entries(sites_config: dict, config: dict) -> List[SignInEntry
             entry['site_name'] = site_name
             entry['class_name'] = site_name
             entry['site_config'] = sub_site_config
+            entry['config'] = config  # 添加全局配置
             entry['result'] = ''
             entry['messages'] = ''
             entry['details'] = ''

@@ -94,7 +94,19 @@ class MainClass(NexusPHP):
             )
             return None
 
-        img = Image.open(BytesIO(img_response.content))
+        # 处理FlareSolverr返回的图片内容
+        try:
+            if hasattr(img_response, 'content'):
+                # 常规requests响应
+                img_content = img_response.content
+            else:
+                # FlareSolverr MockResponse，需要从text转换
+                img_content = img_response.text.encode('latin-1')
+
+            img = Image.open(BytesIO(img_content))
+        except Exception as e:
+            entry.fail_with_prefix(f'Failed to process image: {e}')
+            return None
         code, img_byte_arr = baidu_ocr.get_ocr_code(img, entry, config)
         if not entry.failed:
             if len(code) == 6:

@@ -103,13 +103,13 @@ class FlareSolverrClient:
                    max_timeout: int = 60000) -> Optional[Dict[str, Any]]:
         """
         通过FlareSolverr发送GET请求
-        
+
         Args:
             url: 目标URL
-            headers: 请求头
+            headers: 请求头（FlareSolverr v2中已移除，仅保留兼容性）
             cookies: Cookie字典
             max_timeout: 最大超时时间（毫秒）
-            
+
         Returns:
             Dict: 包含响应内容的字典，或None如果失败
         """
@@ -119,13 +119,14 @@ class FlareSolverrClient:
                 "url": url,
                 "maxTimeout": max_timeout
             }
-            
+
             if self.session_id:
                 data["session"] = self.session_id
-            
-            if headers:
-                data["headers"] = headers
-                
+
+            # FlareSolverr v2移除了headers参数，不再添加
+            # if headers:
+            #     data["headers"] = headers
+
             if cookies:
                 data["cookies"] = [
                     {"name": k, "value": v} for k, v in cookies.items()
@@ -155,14 +156,14 @@ class FlareSolverrClient:
                     max_timeout: int = 60000) -> Optional[Dict[str, Any]]:
         """
         通过FlareSolverr发送POST请求
-        
+
         Args:
             url: 目标URL
             post_data: POST数据（字符串格式）
-            headers: 请求头
+            headers: 请求头（FlareSolverr v2中已移除，仅保留兼容性）
             cookies: Cookie字典
             max_timeout: 最大超时时间（毫秒）
-            
+
         Returns:
             Dict: 包含响应内容的字典，或None如果失败
         """
@@ -173,13 +174,14 @@ class FlareSolverrClient:
                 "postData": post_data,
                 "maxTimeout": max_timeout
             }
-            
+
             if self.session_id:
                 data["session"] = self.session_id
-            
-            if headers:
-                data["headers"] = headers
-                
+
+            # FlareSolverr v2移除了headers参数，不再添加
+            # if headers:
+            #     data["headers"] = headers
+
             if cookies:
                 data["cookies"] = [
                     {"name": k, "value": v} for k, v in cookies.items()

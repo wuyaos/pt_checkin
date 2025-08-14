@@ -131,9 +131,16 @@ class Request:
                 def __init__(self, solution_data):
                     self.status_code = solution_data.get('status', 200)
                     self.text = solution_data.get('response', '')
-                    self.content = self.text.encode('utf-8')
                     self.url = solution_data.get('url', url)
                     self.headers = solution_data.get('headers', {})
+
+                    # 处理二进制内容
+                    response_text = solution_data.get('response', '')
+                    if isinstance(response_text, str):
+                        # 首先尝试UTF-8编码
+                        self.content = response_text.encode('utf-8')
+                    else:
+                        self.content = response_text
 
                     # 更新entry中的cookie
                     if 'cookies' in solution_data:
@@ -160,6 +167,8 @@ class Request:
         # 检查是否使用FlareSolverr
         if self._should_use_flaresolverr(entry):
             logger.info(f"Using FlareSolverr for {url}")
+            logger.debug(f"Config passed to request: {config is not None}")
+            logger.debug(f"Entry config exists: {entry.get('config') is not None}")
             return self._request_with_flaresolverr(
                 entry, method, url, config, **kwargs
             )
