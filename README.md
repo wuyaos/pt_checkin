@@ -192,7 +192,7 @@ pt-checkin get-notification --title-only
 
 #### 1. **订阅导入**：使用青龙面板的订阅功能导入脚本
 ```bash
-ql repo https://github.com/wuyaos/pt_checkin "ck_" "" "config_example.yml" "ql" "py"
+ql repo https://github.com/wuyaos/pt_checkin.git "ck_" "" "config_example.yml" "ql" "py"
 ```
 
 #### 2. **配置文件设置**：
