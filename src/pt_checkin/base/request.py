@@ -68,7 +68,7 @@ class Request:
                 from ..utils.flaresolverr import get_flaresolverr_client
                 # 优先使用传入的config，否则从entry中获取
                 use_config = config or entry.get('config', {})
-                logger.debug(f"FlareSolverr config: {use_config.get('flaresolverr', 'Not found')}")
+                logger.info(f"Creating FlareSolverr client with config: {use_config.get('flaresolverr', 'Not found')}")
                 self.flaresolverr_client = get_flaresolverr_client(use_config)
                 if self.flaresolverr_client:
                     logger.info(f"FlareSolverr client initialized: {self.flaresolverr_client.server_url}")
@@ -176,8 +176,12 @@ class Request:
         # 检查是否使用FlareSolverr
         if self._should_use_flaresolverr(entry):
             logger.info(f"Using FlareSolverr for {url}")
-            logger.debug(f"Config passed to request: {config is not None}")
-            logger.debug(f"Entry config exists: {entry.get('config') is not None}")
+            logger.info(f"Config passed to request: {config is not None}")
+            logger.info(f"Entry config exists: {entry.get('config') is not None}")
+            if config:
+                logger.info(f"Config has flaresolverr: {'flaresolverr' in config}")
+            if entry.get('config'):
+                logger.info(f"Entry config has flaresolverr: {'flaresolverr' in entry.get('config', {})}")
             return self._request_with_flaresolverr(
                 entry, method, url, config, **kwargs
             )

@@ -81,6 +81,9 @@ class MainClass(NexusPHP):
         if image_hash_re and img_src_re:
             image_hash = image_hash_re.group()
             img_src = img_src_re.group()
+
+            # 处理HTML实体编码，将&amp;转换为&
+            img_src = img_src.replace('&amp;', '&')
             img_url = urljoin(entry['url'], img_src)
 
             # 验证码图片使用普通requests下载，不使用FlareSolverr和cookie

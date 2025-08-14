@@ -27,6 +27,8 @@ class ConfigManager:
             with open(self.config_path, 'r', encoding='utf-8') as f:
                 self.config = yaml.safe_load(f) or {}
             logger.info(f"配置文件加载成功: {self.config_path}")
+            logger.info(f"FlareSolverr配置: {self.config.get('flaresolverr', 'Not found')}")
+            logger.info(f"站点配置: {list(self.config.get('sites', {}).keys())}")
             self._validate_config()
         except yaml.YAMLError as e:
             logger.error(f"配置文件格式错误: {e}")

@@ -83,10 +83,10 @@ def get_ocr_code(img: Image.Image, entry: SignInEntry, config: dict) -> tuple:
     img.save(img_byte_arr, format='png')
     try:
         with lock:
-            # 使用basicGeneral方法，效果更好
+            # 使用basicGeneral方法，效果更好，专门针对英文验证码
             result = client.basicGeneral(img_byte_arr.getvalue(), {"language_type": "ENG"})
     except Exception as e:
-        entry.fail_with_prefix('baidu ocr error.')
+        entry.fail_with_prefix(f'baidu ocr error: {e}')
         return None, None
     logger.info(result)
     if result.get('error_msg'):
