@@ -9,14 +9,14 @@ description = "PT站点自动签到工具 - 独立版本，移除FlexGet依赖"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-    {name = "PT Checkin Team"}
+    {name = "wuyaos"}
 ]
 maintainers = [
-    {name = "PT Checkin Team"}
+    {name = "wuyaos"}
 ]
-keywords = ["pt", "checkin", "signin", "torrent", "automation"]
+keywords = ["pt", "checkin", "signin", "automation"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status ::  1 - Production/Stable",
     "Intended Audience :: End Users/Desktop",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
@@ -55,10 +55,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/your-username/pt-checkin"
-Repository = "https://github.com/your-username/pt-checkin"
-Issues = "https://github.com/your-username/pt-checkin/issues"
-Documentation = "https://github.com/your-username/pt-checkin/blob/main/README.md"
+Homepage = "https://github.com/wuyaos/pt-checkin"
+Repository = "https://github.com/wuyaos/pt-checkin"
+Issues = "https://github.com/wuyaos/pt-checkin/issues"
+Documentation = "https://github.com/wuyaos/pt-checkin/blob/main/README.md"
 
 [project.scripts]
 pt-checkin = "pt_checkin.cli:main"
