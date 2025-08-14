@@ -182,7 +182,7 @@ class PrivateTorrent(Request, SignIn, Detail, Message, ABC):
                        work: Work,
                        last_content: str = None,
                        ) -> Response | None:
-        return self.request(entry, 'get', work.url)
+        return self.request(entry, 'get', work.url, config)
 
     def sign_in_by_post(self,
                         entry: SignInEntry,
@@ -199,7 +199,7 @@ class PrivateTorrent(Request, SignIn, Detail, Message, ABC):
             else:
                 entry.fail_with_prefix(f'Cannot find key: {key}, url: {work.url}')
                 return None
-        return self.request(entry, 'post', work.url, data=data)
+        return self.request(entry, 'post', work.url, config, data=data)
 
     def sign_in_by_login(self,
                          entry: SignInEntry,
@@ -210,4 +210,5 @@ class PrivateTorrent(Request, SignIn, Detail, Message, ABC):
         if not (login := entry['site_config'].get('login')):
             entry.fail_with_prefix('Login data not found!')
             return None
-        return self.request(entry, 'post', work.url, data=self.sign_in_build_login_data(login, last_content))
+        return self.request(entry, 'post', work.url, config,
+                           data=self.sign_in_build_login_data(login, last_content))

@@ -51,16 +51,23 @@ class MainClass(NexusPHP):
         ]
 
     def sign_in_by_ocr(self, entry: SignInEntry, config: dict, work: Work, last_content: str) -> Response | None:
-        image_hash_response = self.request(entry, 'get', work.url)
+        image_hash_response = self.request(entry, 'get', work.url, config)
         image_hash_network_state = check_network_state(entry, work, image_hash_response)
         if image_hash_network_state != NetworkState.SUCCEED:
             entry.fail_with_prefix('Get image hash failed.')
             return None
-        image_hash_content = net_utils.decode(image_hash_response)
+        # 尝试多种方式获取页面内容
+        image_hash_content = None
+        try:
+            # 首先尝试使用response.text（自动处理编码和压缩）
+            image_hash_content = image_hash_response.text
+        except Exception:
+            # 如果失败，使用net_utils.decode作为备用
+            image_hash_content = net_utils.decode(image_hash_response)
 
-        # 调试：输出页面内容的前500个字符
-        from loguru import logger
-        logger.debug(f'Page content preview: {image_hash_content[:500]}')
+        if not image_hash_content:
+            entry.fail_with_prefix('Failed to decode response content.')
+            return None
 
         # 检查是否被重定向到登录页面
         login_indicators = ['未登錄!', '錯誤: 該頁面必須在登錄後才能訪問']
@@ -75,7 +82,7 @@ class MainClass(NexusPHP):
             image_hash = image_hash_re.group()
             img_src = img_src_re.group()
             img_url = urljoin(entry['url'], img_src)
-            img_response = self.request(entry, 'get', img_url)
+            img_response = self.request(entry, 'get', img_url, config)
             img_network_state = check_network_state(entry, img_url, img_response)
             if img_network_state != NetworkState.SUCCEED:
                 entry.fail_with_prefix('Get image failed.')
@@ -99,7 +106,7 @@ class MainClass(NexusPHP):
                     'imagestring': (None, code)
                 }
                 return self.request(
-                    entry, 'post', work.url, files=data, params=params
+                    entry, 'post', work.url, config, files=data, params=params
                 )
         return None
 
