@@ -82,10 +82,23 @@ class MainClass(NexusPHP):
             image_hash = image_hash_re.group()
             img_src = img_src_re.group()
             img_url = urljoin(entry['url'], img_src)
-            img_response = self.request(entry, 'get', img_url, config)
-            img_network_state = check_network_state(entry, img_url, img_response)
-            if img_network_state != NetworkState.SUCCEED:
-                entry.fail_with_prefix('Get image failed.')
+
+            # 验证码图片使用普通requests下载，不使用FlareSolverr和cookie
+            import requests
+            try:
+                # 直接使用requests下载图片，不经过FlareSolverr
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'Referer': 'https://open.cd/plugin_sign-in.php'
+                }
+                img_response = requests.get(img_url, headers=headers, timeout=30)
+
+                if img_response.status_code != 200:
+                    entry.fail_with_prefix(f'Get image failed: HTTP {img_response.status_code}')
+                    return None
+
+            except Exception as e:
+                entry.fail_with_prefix(f'Get image failed: {e}')
                 return None
         else:
             entry.fail_with_prefix(
@@ -94,16 +107,22 @@ class MainClass(NexusPHP):
             )
             return None
 
-        # 处理FlareSolverr返回的图片内容
+        # 处理图片内容（现在是标准的requests响应）
         try:
-            if hasattr(img_response, 'content'):
-                # 常规requests响应
-                img_content = img_response.content
-            else:
-                # FlareSolverr MockResponse，需要从text转换
-                img_content = img_response.text.encode('latin-1')
+            img_content = img_response.content
+
+            # 验证图片数据
+            if len(img_content) < 100:  # 图片数据太小，可能有问题
+                entry.fail_with_prefix(f'Image data too small: {len(img_content)} bytes')
+                return None
+
+            # 检查是否是HTML页面（有时服务器返回错误页面）
+            if img_content.startswith(b'<html') or img_content.startswith(b'<!DOCTYPE'):
+                entry.fail_with_prefix('Received HTML instead of image data.')
+                return None
 
             img = Image.open(BytesIO(img_content))
+
         except Exception as e:
             entry.fail_with_prefix(f'Failed to process image: {e}')
             return None

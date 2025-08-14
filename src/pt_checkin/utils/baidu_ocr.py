@@ -83,7 +83,8 @@ def get_ocr_code(img: Image.Image, entry: SignInEntry, config: dict) -> tuple:
     img.save(img_byte_arr, format='png')
     try:
         with lock:
-            result = client.basicAccurate(img_byte_arr.getvalue(), {"language_type": "ENG"})
+            # 使用basicGeneral方法，效果更好
+            result = client.basicGeneral(img_byte_arr.getvalue(), {"language_type": "ENG"})
     except Exception as e:
         entry.fail_with_prefix('baidu ocr error.')
         return None, None
@@ -92,8 +93,19 @@ def get_ocr_code(img: Image.Image, entry: SignInEntry, config: dict) -> tuple:
         entry.fail_with_prefix(result.get('error_msg'))
         return None, None
 
+    # 检查OCR结果
+    if not result.get('words_result') or len(result['words_result']) == 0:
+        entry.fail_with_prefix('OCR failed: No text recognized in image')
+        return None, img_byte_arr.getvalue()
+
     code = re.sub('\\W', '', result['words_result'][0]['words'])
     code = code.upper()
+
+    # 验证验证码长度
+    if len(code) == 0:
+        entry.fail_with_prefix('OCR failed: Empty text recognized')
+        return None, img_byte_arr.getvalue()
+
     return code, img_byte_arr.getvalue()
 
 

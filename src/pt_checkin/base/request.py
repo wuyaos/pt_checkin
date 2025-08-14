@@ -137,8 +137,17 @@ class Request:
                     # 处理二进制内容
                     response_text = solution_data.get('response', '')
                     if isinstance(response_text, str):
-                        # 首先尝试UTF-8编码
-                        self.content = response_text.encode('utf-8')
+                        # 检查是否是图片请求
+                        if 'image.php' in url or any(ext in url.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp']):
+                            # 对于图片请求，使用latin-1编码保持字节不变
+                            try:
+                                self.content = response_text.encode('latin-1')
+                            except UnicodeEncodeError:
+                                # 如果latin-1失败，使用utf-8
+                                self.content = response_text.encode('utf-8')
+                        else:
+                            # 对于普通文本内容，使用utf-8编码
+                            self.content = response_text.encode('utf-8')
                     else:
                         self.content = response_text
 
