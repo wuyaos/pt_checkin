@@ -1,12 +1,15 @@
+# Project specific
 .history/
 config.yml
+pt_signin_*.log
+memory-bank/
+test/
+cookies_backup.json
+signin_status.json
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-memory-bank/
-cookies_backup.json
-signin_status.json
-logs/
 # Distribution / packaging
 .Python
 build/

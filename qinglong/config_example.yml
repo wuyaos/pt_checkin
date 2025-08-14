@@ -1,0 +1,45 @@
+# 青龙平台 PT签到配置文件示例
+# 复制此文件为 config.yml 并修改相应配置
+
+# PT站点配置
+sites:
+  # 上海交通大学PT站
+  sjtu:
+    cookie: "your_sjtu_cookie_here"
+    
+  # 动漫花园（示例，取消注释并填入Cookie使用）
+  # dmhy:
+  #   cookie: "your_dmhy_cookie_here"
+  
+  # 北邮人PT（示例，取消注释并填入Cookie使用）
+  # byr:
+  #   cookie: "your_byr_cookie_here"
+  
+  # 更多站点可以按照上述格式添加...
+
+# 基础配置
+max_workers: 1  # 最大并发工作线程数（青龙环境建议设为1）
+max_failed_attempts: 3  # 单个站点最大失败次数
+
+# 功能开关
+get_messages: true   # 是否获取站内消息
+get_details: true    # 是否获取用户详情（上传量、下载量等）
+cookie_backup: true  # 是否备份Cookie
+
+# 百度OCR配置（可选，用于验证码识别）
+# 如不需要验证码识别功能，可以删除此部分
+baidu_ocr:
+  app_id: ""      # 百度AI开放平台应用ID
+  api_key: ""     # 百度AI开放平台API Key
+  secret_key: ""  # 百度AI开放平台Secret Key
+
+# 青龙平台特殊配置
+qinglong:
+  # 通知设置
+  notification:
+    success: true   # 签到成功时是否发送通知
+    failure: true   # 签到失败时是否发送通知
+    summary: true   # 是否发送每日签到摘要
+  
+  # 日志设置
+  log_level: "INFO"  # 日志级别: DEBUG, INFO, WARNING, ERROR

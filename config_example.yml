@@ -1,132 +1,58 @@
-# PT站点自动签到配置文件示例
-# 复制此文件为 config.yml 并根据你的需求进行配置
+# PT站点自动签到工具配置文件示例
+# 复制此文件为 config.yml 并修改相应配置
 
-# ==================== 基础设置 ====================
+# 基础配置
+max_workers: 1                    # 最大工作线程数
+user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+schedule_time: '08:30'            # 定时签到时间 (24小时制)
+get_messages: true                # 是否获取站点消息
+get_details: true                 # 是否获取详细信息
+cookie_backup: true               # 是否备份Cookie
 
-# 最大并发线程数（建议设置为1，避免对站点造成压力）
-max_workers: 1
+# 百度OCR配置 (可选，用于验证码识别)
+baidu_ocr_app_id: ''              # 百度OCR应用ID
+baidu_ocr_api_key: ''             # 百度OCR API Key
+baidu_ocr_secret_key: ''          # 百度OCR Secret Key
 
-# 浏览器标识（User-Agent）
-user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.63 Safari/537.36'
-
-# ==================== 功能开关 ====================
-
-# 是否获取站内消息
-get_messages: true
-
-# 是否获取用户详情信息
-get_details: true
-
-# 是否备份Cookie到本地文件
-cookie_backup: true
-
-# ==================== 调度设置 ====================
-
-# 每日签到时间（24小时制）
-schedule_time: '08:30'
-
-# 失败次数限制（连续失败多少次后跳过该站点）
-max_failed_attempts: 3
-
-# 失败重试间隔（小时，失败后多少小时内不再尝试）
-failed_retry_interval: 2
-
-# ==================== 百度OCR设置（可选） ====================
-# 用于验证码识别，如果不需要可以留空
-# 申请地址：https://cloud.baidu.com/product/ocr
-
-baidu_ocr_app_id: ''
-baidu_ocr_api_key: ''
-baidu_ocr_secret_key: ''
-
-# ==================== 站点配置 ====================
-# 支持两种配置方式：简单配置和详细配置
-
+# 站点配置
 sites:
-  # -------------------- 简单配置方式 --------------------
-  # 格式：站点名: 'cookie字符串'
-  # 适用于大部分只需要cookie的站点
+  # 示例站点配置 - 简单模式 (仅Cookie)
+  # site_name: 'your_cookie_string_here'
   
-  hdchina: 'your_cookie_string_here'
-  ourbits: 'your_cookie_string_here'
-  keepfrds: 'your_cookie_string_here'
+  # 示例站点配置 - 详细模式
+  # site_name:
+  #   cookie: 'your_cookie_string_here'
+  #   username: 'your_username'
+  #   comment: 'daily_sign_in'
+  #   user_agent: 'custom_user_agent'  # 可选，覆盖全局设置
   
-  # -------------------- 详细配置方式 --------------------
-  # 格式：站点名: {详细配置项}
-  # 适用于需要特殊配置的站点
+  # 实际配置示例 (请替换为你的真实信息)
+  # dmhy:
+  #   cookie: 'your_dmhy_cookie_here'
+  #   username: 'your_username'
+  #   comment: '每日签到'
   
-  # 示例1：需要用户名和评论的站点
-  dmhy:
-    cookie: 'your_cookie_string_here'
-    username: 'your_username'
-    comment: 'daily_sign_in_comment'
+  # byr: 'your_byr_cookie_here'
   
-  # 示例2：需要用户名密码登录的站点
-  skyey2:
-    login:
-      username: 'your_username'
-      password: 'your_password'
-  
-  # 示例3：需要特殊OCR配置的站点
-  open:
-    cookie: 'your_cookie_string_here'
-    ocr_config:
-      retry: 20
-      char_count: 3
-      score: 40
+  # sjtu:
+  #   cookie: 'your_sjtu_cookie_here'
+  #   username: 'your_username'
 
-# ==================== 常见站点配置模板 ====================
-# 以下是一些常见PT站点的配置模板，取消注释并填入你的信息即可使用
-
-# # 中国大陆站点
-# chdbits: 'your_cookie_here'        # CHDBits
-# hdchina: 'your_cookie_here'        # HDChina
-# ourbits: 'your_cookie_here'        # OurBits
-# keepfrds: 'your_cookie_here'       # KeepFrds
-# pterclub: 'your_cookie_here'       # PterClub
-# hdarea: 'your_cookie_here'         # HDArea
-# hdatmos: 'your_cookie_here'        # HDAtmos
-# hddolby: 'your_cookie_here'        # HDDolby
-# hdfans: 'your_cookie_here'         # HDFans
-# hdsky: 'your_cookie_here'          # HDSky
-# hdtime: 'your_cookie_here'         # HDTime
-# joyhd: 'your_cookie_here'          # JoyHD
-# m-team: 'your_cookie_here'         # M-Team
-# totheglory: 'your_cookie_here'     # TTG
-
-# # 教育网站点
-# sjtu: 'your_cookie_here'           # 上海交大葡萄
-# tjupt: 'your_cookie_here'          # 天津大学北洋园
-# byr: 'your_cookie_here'            # 北邮人
-
-# # 国外站点
-# # privatehd: 'your_cookie_here'    # PrivateHD
-# # blutopia: 'your_cookie_here'     # Blutopia
-# # beyond-hd: 'your_cookie_here'    # Beyond-HD
-
-# ==================== Cookie获取方法 ====================
-# 1. 使用浏览器登录PT站点
-# 2. 按F12打开开发者工具
-# 3. 切换到Network（网络）标签
-# 4. 刷新页面
-# 5. 找到站点的请求，查看Request Headers
-# 6. 复制Cookie字段的值（不包括"Cookie: "前缀）
-
-# ==================== 注意事项 ====================
-# 1. Cookie会定期过期，需要及时更新
-# 2. 不要在多个地方同时使用同一个账号，可能导致账号异常
-# 3. 建议设置合理的签到时间，避开站点高峰期
-# 4. 首次使用建议先用 python run.py debug 测试配置
-# 5. 可以用 python run.py once -s 站点名 测试单个站点
-# 6. 连续失败的站点会被暂时跳过，可用 --reset-failed 重置
-
-# ==================== 支持的站点列表 ====================
-# 本工具支持100+个PT站点，包括但不限于：
-# - 中国大陆：CHDBits, HDChina, OurBits, KeepFrds, PterClub, HDArea, HDAtmos, HDCity, HDFans, HDSky, HDTime, JoyHD, M-Team, TTG
-# - 教育网：SJTU, TJUPT, BYR, NYPT, CERNET
-# - 国外站点：PrivateHD, Blutopia, Beyond-HD, Torrentleech, IPTorrents
-# - 音乐站点：Redacted, Orpheus, Dicmusic
-# - 游戏站点：GazelleGames
-# - 其他专业站点：Empornium, MyAnonamouse, SceneTime
-# 
-# 完整支持列表请查看 sites/ 目录下的文件
+# 配置说明:
+# 1. 获取Cookie方法:
+#    - 登录PT站点
+#    - 打开浏览器开发者工具 (F12)
+#    - 在Network标签页中刷新页面
+#    - 找到主页请求，复制Cookie头部信息
+#
+# 2. 支持的站点:
+#    - 查看 src/pt_checkin/sites/ 目录下的文件名
+#    - 文件名即为站点名称 (不含.py扩展名)
+#
+# 3. 配置格式:
+#    - 简单模式: 站点名: 'Cookie字符串'
+#    - 详细模式: 站点名: {cookie: 'Cookie字符串', 其他选项...}
+#
+# 4. 测试配置:
+#    - 运行: pt-checkin test
+#    - 调试: pt-checkin debug -s 站点名
