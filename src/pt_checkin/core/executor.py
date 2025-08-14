@@ -60,7 +60,9 @@ def save_cookie(entry: SignInEntry) -> None:
     if not session_cookie:
         return
     with lock:
-        cookies_backup_file = pathlib.Path.cwd().joinpath(file_name)
+        # 保存到配置文件目录
+        config_dir = entry.get('config', {}).get('config_dir', '.')
+        cookies_backup_file = pathlib.Path(config_dir).joinpath(file_name)
         if cookies_backup_file.is_file():
             try:
                 cookies_backup_json = json.loads(cookies_backup_file.read_text(encoding='utf-8'))

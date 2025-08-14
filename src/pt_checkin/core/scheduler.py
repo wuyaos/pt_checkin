@@ -76,11 +76,15 @@ class TaskScheduler:
 
                 site_name = entry['site_name']
 
+                # 如果指定了特定站点，只处理指定的站点
+                force_sites = force_options.get('force_sites', [])
+                if force_sites and site_name not in force_sites:
+                    logger.debug(f"跳过未指定站点: {site_name}")
+                    continue
+
                 # 检查是否需要强制签到
-                should_force = (
-                    force_options.get('force_all', False) or
-                    force_options.get('force_site') == site_name
-                )
+                force_sites = force_options.get('force_sites', [])
+                should_force = force_options.get('force_all', False)
 
                 # 检查是否已签到
                 if not should_force and self.status_manager.is_signed_today(site_name):
@@ -114,9 +118,7 @@ class TaskScheduler:
                 # 如果是强制签到，清除之前的状态（但保留失败次数）
                 if should_force:
                     self.status_manager.clear_site_status(site_name, keep_failed_count=True)
-                    if force_options.get('force_site') == site_name:
-                        logger.info(f"强制重新签到站点: {site_name}")
-                    elif force_options.get('force_all'):
+                    if force_options.get('force_all'):
                         logger.info(f"强制重新签到所有站点，包括: {site_name}")
 
                 valid_entries.append(entry)

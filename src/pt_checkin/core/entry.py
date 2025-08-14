@@ -48,8 +48,10 @@ class SignInEntry:
         site_name = self.get('site_name')
         if not site_name:
             return ''
-            
-        cookies_backup_file = pathlib.Path.cwd().joinpath(file_name)
+
+        # 从配置文件目录读取
+        config_dir = self.get('config', {}).get('config_dir', '.')
+        cookies_backup_file = pathlib.Path(config_dir).joinpath(file_name)
         if cookies_backup_file.is_file():
             try:
                 cookies_backup_json = json.loads(cookies_backup_file.read_text(encoding='utf-8'))

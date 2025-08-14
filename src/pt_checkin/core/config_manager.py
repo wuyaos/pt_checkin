@@ -95,8 +95,7 @@ class ConfigManager:
     
     def get_baidu_ocr_config(self) -> Dict[str, str]:
         """获取百度OCR配置
-        优先读取新格式 aicpocr: {app_id, api_key, secret_key}，
-        回退兼容老格式顶层 baidu_ocr_app_id 等键。
+        统一使用新格式 aipocr: {app_id, api_key, secret_key}
         """
         if isinstance(self.config.get('aipocr'), dict):
             a = self.config['aipocr']
@@ -105,10 +104,11 @@ class ConfigManager:
                 'api_key': a.get('api_key', ''),
                 'secret_key': a.get('secret_key', ''),
             }
+        # 如果没有新格式配置，返回空配置
         return {
-            'app_id': self.config.get('baidu_ocr_app_id', ''),
-            'api_key': self.config.get('baidu_ocr_api_key', ''),
-            'secret_key': self.config.get('baidu_ocr_secret_key', '')
+            'app_id': '',
+            'api_key': '',
+            'secret_key': ''
         }
     
     def prepare_config_for_executor(self) -> Dict[str, Any]:
