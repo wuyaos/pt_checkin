@@ -203,15 +203,6 @@ ql repo https://github.com/wuyaos/pt_checkin "ck_" "" "config_example.yml" "ql" 
 - 在青龙面板 → 依赖管理 → Python3 中添加依赖：`pt-checkin`
 - 确保环境中已安装pt-checkin包
 
-### 青龙面板使用方法
-
-青龙面板相关的脚本和配置文件位于 `ql` 分支中。如需使用青龙面板功能，请切换到 `ql` 分支：
-
-```bash
-git checkout ql
-```
-
-详细的青龙面板使用说明请参考 `ql` 分支中的相关文档。
 
 ## 项目结构
 
