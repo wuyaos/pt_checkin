@@ -1,0 +1,160 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # 匹配 v1.0.0, v2.1.3 等版本标签
+  
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: '发布版本标签 (例如: v1.0.0)'
+        required: true
+        type: string
+      prerelease:
+        description: '是否为预发布版本'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write  # 用于创建release
+      id-token: write  # 用于PyPI可信发布
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine wheel setuptools
+    
+    - name: Extract version from tag
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          TAG_NAME="${{ github.event.inputs.tag_name }}"
+        else
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+        fi
+        VERSION=${TAG_NAME#v}
+        echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "发布版本: $TAG_NAME ($VERSION)"
+    
+    - name: Update version in pyproject.toml
+      run: |
+        sed -i 's/version = ".*"/version = "${{ steps.version.outputs.version }}"/' pyproject.toml
+        echo "已更新pyproject.toml中的版本号"
+        grep 'version = ' pyproject.toml
+    
+    - name: Build package
+      run: |
+        python -m build
+        echo "构建完成"
+        ls -la dist/
+    
+    - name: Check package
+      run: |
+        python -m twine check dist/*
+    
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # 获取最新的两个标签之间的提交
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        if [ -n "$PREVIOUS_TAG" ]; then
+          echo "生成从 $PREVIOUS_TAG 到 ${{ steps.version.outputs.tag_name }} 的变更日志"
+          CHANGELOG=$(git log --pretty=format:"- %s" $PREVIOUS_TAG..${{ steps.version.outputs.tag_name }} | head -20)
+        else
+          echo "生成首次发布的变更日志"
+          CHANGELOG=$(git log --pretty=format:"- %s" | head -10)
+        fi
+        
+        # 保存到文件
+        cat > CHANGELOG.md << EOF
+        ## 🚀 新版本发布: ${{ steps.version.outputs.tag_name }}
+        
+        ### 📝 变更内容
+        $CHANGELOG
+        
+        ### 📦 安装方式
+        \`\`\`bash
+        pip install pt-checkin==${{ steps.version.outputs.version }}
+        \`\`\`
+        
+        ### 🔗 相关链接
+        - [PyPI包地址](https://pypi.org/project/pt-checkin/${{ steps.version.outputs.version }}/)
+        - [使用文档](https://github.com/${{ github.repository }}/blob/${{ steps.version.outputs.tag_name }}/README.md)
+        - [青龙面板支持](https://github.com/${{ github.repository }}/tree/ql)
+        EOF
+        
+        echo "changelog_file=CHANGELOG.md" >> $GITHUB_OUTPUT
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.version.outputs.tag_name }}
+        name: Release ${{ steps.version.outputs.tag_name }}
+        body_path: CHANGELOG.md
+        files: |
+          dist/*.whl
+          dist/*.tar.gz
+        prerelease: ${{ github.event.inputs.prerelease || false }}
+        generate_release_notes: true
+    
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        print-hash: true
+        verbose: true
+    
+    - name: Sync config to ql branch after release
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        if git show-ref --verify --quiet refs/remotes/origin/ql; then
+          echo "同步配置文件到ql分支"
+          git checkout ql
+          git pull origin ql
+          git checkout ${{ steps.version.outputs.tag_name }} -- config_example.yml
+          mkdir -p qinglong
+          cp config_example.yml qinglong/config_example.yml
+          
+          git add qinglong/config_example.yml
+          if ! git diff --staged --quiet; then
+            git commit -m "sync: 发布 ${{ steps.version.outputs.tag_name }} 后同步配置文件"
+            git push origin ql
+          fi
+        fi
+    
+    - name: Create summary
+      run: |
+        cat >> $GITHUB_STEP_SUMMARY << EOF
+        ## 🎉 发布完成: ${{ steps.version.outputs.tag_name }}
+        
+        ### 📦 构建产物
+        - Wheel: \`$(ls dist/*.whl | xargs basename)\`
+        - Source: \`$(ls dist/*.tar.gz | xargs basename)\`
+        
+        ### 🔗 发布地址
+        - [GitHub Release](https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag_name }})
+        - [PyPI Package](https://pypi.org/project/pt-checkin/${{ steps.version.outputs.version }}/)
+        
+        ### 📋 下一步
+        - 用户可通过 \`pip install pt-checkin==${{ steps.version.outputs.version }}\` 安装
+        - 青龙面板用户可切换到 \`ql\` 分支获取最新配置
+        EOF

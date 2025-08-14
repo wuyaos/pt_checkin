@@ -1,0 +1,156 @@
+name: Build and Publish
+
+on:
+  # 手动执行
+  workflow_dispatch:
+    inputs:
+      publish_to_pypi:
+        description: '是否发布到PyPI'
+        required: true
+        default: 'false'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
+      sync_config:
+        description: '是否同步配置文件到ql分支'
+        required: true
+        default: 'true'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
+  
+  # 项目更新时执行（暂时注释掉）
+  # push:
+  #   branches: [ master ]
+  #   tags: [ 'v*' ]
+  # pull_request:
+  #   branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # 获取完整历史，用于分支操作
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine wheel setuptools
+    
+    - name: Build wheel and source distribution
+      run: |
+        python -m build
+        echo "Build completed successfully"
+        ls -la dist/
+    
+    - name: Check distribution
+      run: |
+        python -m twine check dist/*
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: python-package-distributions
+        path: dist/
+    
+    - name: Sync config to ql branch
+      if: ${{ github.event.inputs.sync_config == 'true' || github.event_name == 'push' }}
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # 检查ql分支是否存在
+        if git show-ref --verify --quiet refs/heads/ql; then
+          echo "ql分支存在，开始同步配置文件"
+          
+          # 切换到ql分支
+          git checkout ql
+          
+          # 从master分支复制config_example.yml
+          git checkout master -- config_example.yml
+          
+          # 如果qinglong目录不存在则创建
+          mkdir -p qinglong
+          
+          # 复制到qinglong目录
+          cp config_example.yml qinglong/config_example.yml
+          
+          # 提交更改
+          git add qinglong/config_example.yml
+          if git diff --staged --quiet; then
+            echo "配置文件无变化，跳过提交"
+          else
+            git commit -m "sync: 同步master分支的config_example.yml到ql分支"
+            git push origin ql
+            echo "配置文件同步完成"
+          fi
+          
+          # 切换回master分支
+          git checkout master
+        else
+          echo "ql分支不存在，跳过配置文件同步"
+        fi
+
+  publish-to-pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.publish_to_pypi == 'true' || startsWith(github.ref, 'refs/tags/v') }}
+    
+    environment:
+      name: pypi
+      url: https://pypi.org/p/pt-checkin
+    
+    permissions:
+      id-token: write  # 用于PyPI的可信发布
+    
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: python-package-distributions
+        path: dist/
+    
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        # 使用PyPI的可信发布，无需API token
+        # repository-url: https://test.pypi.org/legacy/  # 测试环境，正式发布时注释掉
+        print-hash: true
+        verbose: true
+
+  publish-to-test-pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.publish_to_pypi == 'true' && github.ref == 'refs/heads/master' }}
+    
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/pt-checkin
+    
+    permissions:
+      id-token: write
+    
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: python-package-distributions
+        path: dist/
+    
+    - name: Publish to Test PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        repository-url: https://test.pypi.org/legacy/
+        print-hash: true
+        verbose: true
