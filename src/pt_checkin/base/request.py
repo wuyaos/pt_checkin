@@ -67,17 +67,11 @@ class Request:
                 from ..utils.flaresolverr import get_flaresolverr_client
                 # 优先使用传入的config，否则从entry中获取
                 use_config = config or entry.get('config', {})
-                logger.info(f"Creating FlareSolverr client with config: {use_config.get('flaresolverr', 'Not found')}")
                 self.flaresolverr_client = get_flaresolverr_client(use_config)
-                if self.flaresolverr_client:
-                    logger.info(f"FlareSolverr client initialized: {self.flaresolverr_client.server_url}")
-                else:
-                    logger.warning("FlareSolverr client creation failed")
             except ImportError:
-                logger.warning("FlareSolverr module not available")
                 return None
             except Exception as e:
-                logger.error(f"FlareSolverr client creation error: {e}")
+                logger.error(f"FlareSolverr - 客户端创建失败: {e}")
                 return None
         return self.flaresolverr_client
 
@@ -90,7 +84,6 @@ class Request:
         """使用FlareSolverr发送请求"""
         client = self._get_flaresolverr_client(entry, config)
         if not client:
-            logger.error("FlareSolverr client not available")
             return None
 
         try:
@@ -110,17 +103,14 @@ class Request:
             elif method.upper() == 'POST':
                 # 处理POST数据
                 post_data = ""
-                logger.info(f"POST kwargs: {kwargs}")
                 if 'data' in kwargs:
                     import urllib.parse
                     post_data = urllib.parse.urlencode(kwargs['data'])
-                    logger.info(f"POST data encoded: {post_data}")
                 elif 'json' in kwargs:
                     import json
                     post_data = json.dumps(kwargs['json'])
-                    logger.info(f"POST json encoded: {post_data}")
                 else:
-                    logger.warning("No POST data found in kwargs")
+                    post_data = ""
 
                 solution = client.request_post(url, post_data, headers, cookies)
             else:
@@ -179,13 +169,6 @@ class Request:
 
         # 检查是否使用FlareSolverr
         if self._should_use_flaresolverr(entry):
-            logger.info(f"Using FlareSolverr for {url}")
-            logger.info(f"Config passed to request: {config is not None}")
-            logger.info(f"Entry config exists: {entry.get('config') is not None}")
-            if config:
-                logger.info(f"Config has flaresolverr: {'flaresolverr' in config}")
-            if entry.get('config'):
-                logger.info(f"Entry config has flaresolverr: {'flaresolverr' in entry.get('config', {})}")
             return self._request_with_flaresolverr(
                 entry, method, url, config, **kwargs
             )
@@ -208,7 +191,6 @@ class Request:
 
             # 检测Cloudflare保护
             if cf_detected(response):
-                logger.warning(f"Cloudflare detected for {url}")
                 entry.fail_with_prefix(
                     f'url: {url} detected CloudFlare DDoS-GUARD. '
                     'Consider enabling FlareSolverr.'

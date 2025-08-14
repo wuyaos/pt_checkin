@@ -13,21 +13,40 @@ from .core.config_manager import ConfigManager
 @click.pass_context
 def cli(ctx, config: str, verbose: bool):
     """PT站点自动签到工具"""
-    # 设置日志级别
+    # 设置日志级别和颜色
     logger.remove()  # 移除默认处理器
+
+    # 定义日志格式和颜色
+    log_format = (
+        "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
+        "<level>{level: <8}</level> | "
+        "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
+        "<level>{message}</level>"
+    )
+
     if verbose:
-        logger.add(lambda msg: print(msg, end=''), level="DEBUG")
+        logger.add(
+            lambda msg: print(msg, end=''),
+            level="DEBUG",
+            format=log_format,
+            colorize=True
+        )
     else:
-        logger.add(lambda msg: print(msg, end=''), level="INFO")
+        logger.add(
+            lambda msg: print(msg, end=''),
+            level="INFO",
+            format=log_format,
+            colorize=True
+        )
 
     # 初始化配置管理器
     try:
         config_manager = ConfigManager(config)
         ctx.ensure_object(dict)
         ctx.obj['config_manager'] = config_manager
-        logger.info("程序初始化完成")
+        logger.info("程序初始化 - 完成")
     except Exception as e:
-        logger.error(f"初始化失败: {e}")
+        logger.error(f"程序初始化 - 失败: {e}")
         ctx.exit(1)
 
 
@@ -43,7 +62,7 @@ def run(ctx, site: str, force: bool, dry_run: bool):
     config_manager = ctx.obj['config_manager']
     
     if dry_run:
-        logger.info("模拟运行模式，不会实际执行签到")
+        print("🔍 模拟运行模式 - 不会实际执行签到")
     
     # 创建调度器并执行
     from .core.scheduler import TaskScheduler
@@ -58,11 +77,11 @@ def run(ctx, site: str, force: bool, dry_run: bool):
     
     try:
         if dry_run:
-            logger.info("模拟运行完成")
+            print("✅ 模拟运行完成")
         else:
             scheduler.run_once(force_options)
     except Exception as e:
-        logger.error(f"签到任务执行失败: {e}")
+        print(f"❌ 签到任务执行失败: {e}")
         ctx.exit(1)
 
 
@@ -74,23 +93,28 @@ def test(ctx):
     """测试配置文件"""
     config_manager = ctx.obj['config_manager']
     
-    logger.info("=== 配置文件测试 ===")
-    
+    print("🔧 配置文件测试")
+    print("=" * 50)
+
     # 测试站点配置
     sites = config_manager.get_sites()
-    logger.info(f"配置的站点数量: {len(sites)}")
-    
-    for site_name in sites.keys():
-        logger.info(f"  - {site_name}")
-    
+    print(f"📊 配置的站点数量: {len(sites)}")
+
+    if sites:
+        print("📋 站点列表:")
+        for site_name in sites.keys():
+            print(f"  • {site_name}")
+    else:
+        print("⚠️  未配置任何站点")
+
     # 测试百度OCR配置
     baidu_ocr = config_manager.get_baidu_ocr_config()
     if baidu_ocr and baidu_ocr.get('app_id'):
-        logger.info("百度OCR配置: 已配置")
+        print("🔑 百度OCR配置: ✅ 已配置")
     else:
-        logger.info("百度OCR配置: 未配置")
-    
-    logger.info("配置文件测试完成")
+        print("🔑 百度OCR配置: ❌ 未配置")
+
+    print("✅ 配置文件测试完成")
 
 
 @cli.command()
@@ -102,19 +126,19 @@ def test_site(ctx, site_name: str, debug: bool):
     config_manager = ctx.obj['config_manager']
     
     if debug:
-        logger.debug("启用调试模式")
-    
+        print("🐛 调试模式已启用")
+
     # 检查站点配置
     sites = config_manager.get_sites()
     if site_name not in sites:
-        logger.error(f"站点 {site_name} 未在配置文件中找到")
+        print(f"❌ 站点 {site_name} 未在配置文件中找到")
         ctx.exit(1)
-    
-    logger.info(f"测试站点 {site_name} 签到...")
-    
+
+    print(f"🧪 测试站点 {site_name} 签到...")
+
     if debug:
         site_config = sites[site_name]
-        logger.debug(f"站点配置: {site_config}")
+        print(f"🔧 站点配置: {site_config}")
     
     # 创建调度器并执行单站点测试
     from .core.scheduler import TaskScheduler
@@ -146,37 +170,39 @@ def status(ctx, clear: bool, clear_site: str, show_failed: bool):
     
     if clear:
         status_manager.clear_today_status()
-        logger.info("已清除今日所有签到状态")
+        print("🗑️  已清除今日所有签到状态")
         return
-    
+
     if clear_site:
         status_manager.clear_site_status(clear_site)
-        logger.info(f"已清除站点 {clear_site} 的今日签到状态")
+        print(f"🗑️  已清除站点 {clear_site} 的今日签到状态")
         return
-    
+
     # 显示状态
-    logger.info("=== 今日签到状态 ===")
+    print("📊 今日签到状态")
+    print("=" * 50)
 
     summary = status_manager.get_today_summary()
     if summary['total'] == 0:
-        logger.info("今日暂无签到记录")
+        print("📝 今日暂无签到记录")
         return
 
     for site_name, status_info in summary['sites'].items():
         status_text = "✅ 成功" if status_info['status'] == 'success' else "❌ 失败"
         message = status_info.get('message', '')
         time_str = status_info.get('time', '')
-        logger.info(f"  {site_name}: {status_text} - {message} ({time_str})")
-    
+        print(f"  {site_name}: {status_text} - {message} ({time_str})")
+
     if show_failed:
-        logger.info("\n=== 失败次数统计 ===")
+        print("\n⚠️  失败次数统计")
+        print("-" * 30)
         failed_counts = status_manager.get_all_failed_counts()
         if failed_counts:
             for site_name, count in failed_counts.items():
                 if count > 0:
-                    logger.info(f"  {site_name}: {count} 次")
+                    print(f"  {site_name}: {count} 次")
         else:
-            logger.info("暂无失败记录")
+            print("  暂无失败记录")
 
 
 # ==================== 通知命令 ====================
@@ -214,8 +240,9 @@ def get_notification(ctx, format: str, title_only: bool, detailed: bool):
         }
         print(json.dumps(result, ensure_ascii=False))
     else:
-        print(f"标题: {notification['title']}")
-        print(f"内容:\n{notification['content']}")
+        print(f"📢 {notification['title']}")
+        print("=" * 50)
+        print(notification['content'])
 
 
 # ==================== 调试命令 ====================
@@ -280,7 +307,18 @@ def run_signin(
     """
     # 设置日志级别为INFO，不输出DEBUG信息
     logger.remove()
-    logger.add(lambda msg: print(msg, end=''), level="INFO")
+    log_format = (
+        "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
+        "<level>{level: <8}</level> | "
+        "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
+        "<level>{message}</level>"
+    )
+    logger.add(
+        lambda msg: print(msg, end=''),
+        level="INFO",
+        format=log_format,
+        colorize=True
+    )
 
     try:
         # 初始化配置管理器
@@ -349,9 +387,18 @@ def get_notification_message(include_details: bool = False) -> dict:
         failed_sites = []
 
         for site_name, site_info in summary['sites'].items():
+            # 固定使用6个空格对齐
+            alignment_spaces = "      "
+
             if site_info['status'] == 'success':
                 result_msg = site_info.get('result', '成功')
-                site_line = f"✅ {site_name}: {result_msg}"
+                signin_type = site_info.get('signin_type', '签到成功')
+                # 使用新的格式：站点名：具体状态
+                site_line = f"{site_name}：{signin_type}"
+
+                # 添加签到消息
+                if result_msg and result_msg != '成功':
+                    site_line += f"\n{alignment_spaces}签到消息：{result_msg}"
 
                 # 如果需要详细信息，添加消息和详情
                 if include_details:
@@ -359,14 +406,14 @@ def get_notification_message(include_details: bool = False) -> dict:
                     details = site_info.get('details', '')
 
                     if messages:
-                        site_line += f"\n    📨 消息: {messages[:100]}..."
+                        site_line += f"\n{alignment_spaces}消息获取：成功"
 
                     if details:
                         # 处理详情信息，提取关键信息
                         if isinstance(details, dict):
                             detail_parts = []
                             if details.get('points'):
-                                detail_parts.append(f"魔力值: {details['points']}")
+                                detail_parts.append(f"G值: {details['points']}")
                             if details.get('share_ratio'):
                                 detail_parts.append(f"分享率: {details['share_ratio']}")
                             if details.get('uploaded'):
@@ -374,20 +421,18 @@ def get_notification_message(include_details: bool = False) -> dict:
                             if details.get('downloaded'):
                                 detail_parts.append(f"下载: {details['downloaded']}")
                             if detail_parts:
-                                site_line += f"\n    📈 详情: {' | '.join(detail_parts)}"
+                                account_info = ' | '.join(detail_parts)
+                                site_line += f"\n{alignment_spaces}账户：{account_info}"
                         else:
                             details_str = str(details)[:100]
-                            site_line += f"\n    📈 详情: {details_str}..."
+                            site_line += f"\n{alignment_spaces}账户：{details_str}..."
 
                 success_sites.append(site_line)
             else:
                 reason = site_info.get('reason', '失败')
-                site_line = f"❌ {site_name}: {reason}"
-
-                # 失败站点也可以显示详细的失败原因
-                if include_details and len(reason) > 50:
-                    # 如果失败原因很长，在详细模式下显示完整信息
-                    site_line = f"❌ {site_name}: {reason[:50]}...\n    详细原因: {reason}"
+                # 使用新的格式：站点名：签到失败
+                site_line = f"{site_name}：签到失败"
+                site_line += f"\n{alignment_spaces}摘要：{reason}"
 
                 failed_sites.append(site_line)
 
@@ -399,8 +444,6 @@ def get_notification_message(include_details: bool = False) -> dict:
 
         # 生成完整内容
         content_lines = [
-            "PT站点签到完成",
-            "",
             "📊 结果统计:",
             f"• 总计: {summary['total']} 个站点",
             f"• 成功: {summary['success']} 个",

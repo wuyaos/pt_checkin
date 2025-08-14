@@ -57,14 +57,13 @@ class FlareSolverrClient:
                 result = response.json()
                 if result.get("status") == "ok":
                     self.session_id = result.get("session")
-                    logger.info(f"FlareSolverr session created: {self.session_id}")
                     return True
-            
-            logger.error(f"Failed to create FlareSolverr session: {response.text}")
+
+            logger.error(f"FlareSolverr - 会话创建失败: {response.text}")
             return False
-            
+
         except Exception as e:
-            logger.error(f"FlareSolverr session creation error: {e}")
+            logger.error(f"FlareSolverr - 会话创建异常: {e}")
             return False
     
     def destroy_session(self) -> bool:
@@ -87,15 +86,14 @@ class FlareSolverrClient:
             if response.status_code == 200:
                 result = response.json()
                 if result.get("status") == "ok":
-                    logger.info(f"FlareSolverr session destroyed: {self.session_id}")
                     self.session_id = None
                     return True
-            
-            logger.error(f"Failed to destroy FlareSolverr session: {response.text}")
+
+            logger.error(f"FlareSolverr - 会话销毁失败: {response.text}")
             return False
-            
+
         except Exception as e:
-            logger.error(f"FlareSolverr session destruction error: {e}")
+            logger.error(f"FlareSolverr - 会话销毁异常: {e}")
             return False
     
     def request_get(self, url: str, headers: Optional[Dict[str, str]] = None,
@@ -143,11 +141,11 @@ class FlareSolverrClient:
                 if result.get("status") == "ok":
                     return result.get("solution", {})
             
-            logger.error(f"FlareSolverr request failed: {response.text}")
+            logger.error(f"FlareSolverr - GET请求失败: {response.text}")
             return None
-            
+
         except Exception as e:
-            logger.error(f"FlareSolverr request error: {e}")
+            logger.error(f"FlareSolverr - GET请求异常: {e}")
             return None
     
     def request_post(self, url: str, post_data: str,
@@ -198,11 +196,11 @@ class FlareSolverrClient:
                 if result.get("status") == "ok":
                     return result.get("solution", {})
             
-            logger.error(f"FlareSolverr POST request failed: {response.text}")
+            logger.error(f"FlareSolverr - POST请求失败: {response.text}")
             return None
-            
+
         except Exception as e:
-            logger.error(f"FlareSolverr POST request error: {e}")
+            logger.error(f"FlareSolverr - POST请求异常: {e}")
             return None
 
 

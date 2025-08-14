@@ -60,7 +60,7 @@ class SignInStatusManager:
             return self.status_data[today][site_name]
         return None
     
-    def record_signin_success(self, site_name: str, result: str, messages: str = '', details: str = '') -> None:
+    def record_signin_success(self, site_name: str, result: str, messages: str = '', details: str = '', signin_type: str = '签到成功') -> None:
         """记录签到成功"""
         today = self.get_today_key()
         if today not in self.status_data:
@@ -71,12 +71,13 @@ class SignInStatusManager:
             'result': result,
             'messages': messages,
             'details': details,
+            'signin_type': signin_type,  # 新增签到类型字段
             'time': datetime.now().strftime('%H:%M:%S'),
             'timestamp': datetime.now().isoformat(),
             'failed_count': 0  # 成功后重置失败次数
         }
         self.save_status()
-        logger.debug(f"记录签到成功: {site_name}")
+        logger.info(f"{site_name} - 状态记录: 签到成功 ({signin_type})")
     
     def record_signin_failed(self, site_name: str, reason: str) -> None:
         """记录签到失败"""
@@ -100,7 +101,8 @@ class SignInStatusManager:
             'failed_count': current_failed_count + 1
         }
         self.save_status()
-        logger.debug(f"记录签到失败: {site_name} - {reason} (失败次数: {current_failed_count + 1})")
+        failed_count = current_failed_count + 1
+        logger.error(f"{site_name} - 状态记录: 签到失败 [失败次数: {failed_count}]")
     
     def clear_site_status(self, site_name: str, keep_failed_count: bool = False) -> None:
         """清除站点今日状态（用于强制重新签到）"""
@@ -118,7 +120,7 @@ class SignInStatusManager:
             else:
                 del self.status_data[today][site_name]
             self.save_status()
-            logger.debug(f"清除站点状态: {site_name} (保留失败次数: {keep_failed_count})")
+            logger.info(f"{site_name} - 状态清除: 清除今日状态")
 
     def get_failed_count(self, site_name: str) -> int:
         """获取站点今日失败次数"""
@@ -159,7 +161,7 @@ class SignInStatusManager:
         if today in self.status_data and site_name in self.status_data[today]:
             self.status_data[today][site_name]['failed_count'] = 0
             self.save_status()
-            logger.info(f"重置站点失败次数: {site_name}")
+            logger.info(f"{site_name} - 状态重置: 失败次数已重置")
     
     def clear_all_status(self) -> None:
         """清除今日所有状态（用于强制重新签到所有站点）"""
@@ -167,7 +169,7 @@ class SignInStatusManager:
         if today in self.status_data:
             del self.status_data[today]
             self.save_status()
-            logger.debug("清除今日所有签到状态")
+            logger.info("状态管理 - 清除完成: 今日所有签到状态已清除")
     
     def get_today_summary(self) -> Dict[str, Any]:
         """获取今日签到摘要"""
@@ -209,4 +211,4 @@ class SignInStatusManager:
         
         if keys_to_remove:
             self.save_status()
-            logger.info(f"清理了 {len(keys_to_remove)} 天的旧签到记录")
+            logger.info(f"状态管理 - 清理完成: 清理了 {len(keys_to_remove)} 天的旧记录")

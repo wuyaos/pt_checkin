@@ -21,37 +21,37 @@ class ConfigManager:
     def load_config(self) -> None:
         """加载配置文件"""
         if not self.config_path.exists():
-            logger.error(f"配置文件不存在: {self.config_path}")
+            logger.error(f"配置管理 - 加载失败: 配置文件不存在 ({self.config_path})")
             raise FileNotFoundError(f"配置文件不存在: {self.config_path}")
         
         try:
             with open(self.config_path, 'r', encoding='utf-8') as f:
                 self.config = yaml.safe_load(f) or {}
-            logger.info(f"配置文件加载成功: {self.config_path}")
-            logger.info(f"FlareSolverr配置: {self.config.get('flaresolverr', 'Not found')}")
-            logger.info(f"站点配置: {list(self.config.get('sites', {}).keys())}")
+            logger.info(f"配置管理 - 加载成功: {self.config_path}")
+            flaresolverr_config = self.config.get('flaresolverr', 'Not found')
+            logger.info(f"配置管理 - FlareSolverr: {flaresolverr_config}")
+            sites_list = list(self.config.get('sites', {}).keys())
+            logger.info(f"配置管理 - 站点配置: {sites_list}")
             self._validate_config()
         except yaml.YAMLError as e:
-            logger.error(f"配置文件格式错误: {e}")
+            logger.error(f"配置管理 - 格式错误: {e}")
             raise
         except Exception as e:
-            logger.error(f"加载配置文件失败: {e}")
+            logger.error(f"配置管理 - 加载失败: {e}")
             raise
     
     def _validate_config(self) -> None:
         """验证配置文件"""
         # 设置默认值
-        self.config.setdefault('max_workers', 1)
         self.config.setdefault('user_agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
         self.config.setdefault('get_messages', True)
         self.config.setdefault('get_details', True)
         self.config.setdefault('cookie_backup', True)
-        self.config.setdefault('schedule_time', '08:30')
         self.config.setdefault('sites', {})
         
         # 验证必要配置
         if not self.config.get('sites'):
-            logger.warning("未配置任何站点")
+            logger.warning("配置管理 - 验证警告: 未配置任何站点")
         
         # 验证站点配置格式
         sites = self.config.get('sites', {})
@@ -63,7 +63,7 @@ class ConfigManager:
                 # 详细配置，保持不变
                 pass
             else:
-                logger.warning(f"站点 {site_name} 配置格式不正确")
+                logger.warning(f"配置管理 - 验证警告: 站点 {site_name} 配置格式不正确")
     
     def get(self, key: str, default: Any = None) -> Any:
         """获取配置项"""
@@ -76,14 +76,6 @@ class ConfigManager:
     def get_user_agent(self) -> str:
         """获取User-Agent"""
         return self.config.get('user_agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
-    
-    def get_max_workers(self) -> int:
-        """获取最大工作线程数"""
-        return self.config.get('max_workers', 1)
-    
-    def get_schedule_time(self) -> str:
-        """获取调度时间"""
-        return self.config.get('schedule_time', '08:30')
 
     def get_max_failed_attempts(self) -> int:
         """获取最大失败次数"""
@@ -115,7 +107,6 @@ class ConfigManager:
         """为执行器准备配置"""
         return {
             'user-agent': self.get_user_agent(),
-            'max_workers': self.get_max_workers(),
             'get_messages': self.get('get_messages', True),
             'get_details': self.get('get_details', True),
             'cookie_backup': self.get('cookie_backup', True),
