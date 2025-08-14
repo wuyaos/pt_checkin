@@ -54,11 +54,10 @@ class Request:
 
     def _should_use_flaresolverr(self, entry: SignInEntry) -> bool:
         """检查是否应该使用FlareSolverr"""
-        # 检查站点配置中的FlareSolverr设置
-        site_config = entry.get('site_config', {})
-        if isinstance(site_config, dict):
-            return site_config.get('use_flaresolverr', False)
-        return False
+        # 使用统一的检测逻辑
+        from ..utils.flaresolverr import should_use_flaresolverr
+        config = entry.get('config', {})
+        return should_use_flaresolverr(entry, config)
 
     def _get_flaresolverr_client(self, entry: SignInEntry,
                                 config: Optional[dict] = None):

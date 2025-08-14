@@ -37,13 +37,9 @@ sites:
   #   username: 'your_username'
   #   comment: 'daily_sign_in'
   #   user_agent: 'custom_user_agent'  # 可选，覆盖全局设置
-  #   use_flaresolverr: true           # 可选，为此站点启用FlareSolverr
 
-  # 需要FlareSolverr的站点配置示例（如被Cloudflare保护的站点）
-  # open:
-  #   cookie: 'your_cookie_here'
-  #   use_flaresolverr: true           # 启用FlareSolverr绕过Cloudflare
-  
+
+
   # 实际配置示例 (请替换为你的真实信息)
   # dmhy:
   #   cookie: 'your_dmhy_cookie_here'
