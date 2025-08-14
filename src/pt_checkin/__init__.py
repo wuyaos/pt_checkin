@@ -4,7 +4,7 @@ PT站点自动签到工具
 一个独立的PT站点自动签到工具，支持多种站点类型和调度模式。
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __author__ = "wuyaos"
 __email__ = ""
 __description__ = "PT站点自动签到工具 - 独立版本，移除FlexGet依赖"
