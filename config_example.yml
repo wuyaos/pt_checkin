@@ -2,35 +2,36 @@
 # 复制此文件为 config.yml 并修改相应配置
 
 # 基础配置
-max_workers: 1                    # 最大工作线程数
-user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-schedule_time: '08:30'            # 定时签到时间 (24小时制)
-get_messages: true                # 是否获取站点消息
-get_details: true                 # 是否获取详细信息
-cookie_backup: true               # 是否备份Cookie
+max_workers   : 1                    # 最大工作线程数
+user_agent    : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+schedule_time : '08:30'            # 定时签到时间 (24小时制)
+get_messages  : true                # 是否获取站点消息
+get_details   : true                 # 是否获取详细信息
+cookie_backup : true               # 是否备份Cookie
 
 # 百度OCR配置 (可选，用于验证码识别)
-baidu_ocr_app_id: ''              # 百度OCR应用ID
-baidu_ocr_api_key: ''             # 百度OCR API Key
-baidu_ocr_secret_key: ''          # 百度OCR Secret Key
+aipocr:
+  app_id     : ''              # 百度OCR应用ID
+  api_key    : ''             # 百度OCR API Key
+  secret_key : ''
 
 # FlareSolverr配置 (可选，用于绕过Cloudflare保护)
 # flaresolverr:
-#   server_url: 'http://192.168.123.179:8191'  # FlareSolverr服务器地址
-#   timeout: 60                        # 请求超时时间（秒）
-#   enable_all: false                  # 是否对所有站点启用FlareSolverr
-#   enabled_sites:                     # 启用FlareSolverr的站点列表
-#     - open                           # 站点名称
+#   server_url    : 'http://127.0.0.1:8191'  # FlareSolverr服务器地址
+#   timeout       : 60                       # 请求超时时间（秒）
+#   enable_all    : false                    # 是否对所有站点启用FlareSolverr
+#   enabled_sites :                          # 启用FlareSolverr的站点列表
+#     - open                                 # 站点名称
 #     - site2
 #
 # 简化配置（仅指定服务器地址，其他使用默认值）:
-# flaresolverr: 'http://192.168.123.179:8191'
+# flaresolverr    : 'http://192.168.123.179:8191'
 
 # 站点配置
 sites:
   # 示例站点配置 - 简单模式 (仅Cookie)
   # site_name: 'your_cookie_string_here'
-  
+
   # 示例站点配置 - 详细模式
   # site_name:
   #   cookie: 'your_cookie_string_here'
@@ -38,35 +39,10 @@ sites:
   #   comment: 'daily_sign_in'
   #   user_agent: 'custom_user_agent'  # 可选，覆盖全局设置
 
-
-
   # 实际配置示例 (请替换为你的真实信息)
   # dmhy:
   #   cookie: 'your_dmhy_cookie_here'
   #   username: 'your_username'
   #   comment: '每日签到'
-  
-  # byr: 'your_byr_cookie_here'
-  
-  # sjtu:
-  #   cookie: 'your_sjtu_cookie_here'
-  #   username: 'your_username'
 
-# 配置说明:
-# 1. 获取Cookie方法:
-#    - 登录PT站点
-#    - 打开浏览器开发者工具 (F12)
-#    - 在Network标签页中刷新页面
-#    - 找到主页请求，复制Cookie头部信息
-#
-# 2. 支持的站点:
-#    - 查看 src/pt_checkin/sites/ 目录下的文件名
-#    - 文件名即为站点名称 (不含.py扩展名)
-#
-# 3. 配置格式:
-#    - 简单模式: 站点名: 'Cookie字符串'
-#    - 详细模式: 站点名: {cookie: 'Cookie字符串', 其他选项...}
-#
-# 4. 测试配置:
-#    - 运行: pt-checkin test
-#    - 调试: pt-checkin debug -s 站点名
+  # byr: 'your_byr_cookie_here'
