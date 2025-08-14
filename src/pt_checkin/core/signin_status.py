@@ -77,7 +77,7 @@ class SignInStatusManager:
             'failed_count': 0  # 成功后重置失败次数
         }
         self.save_status()
-        logger.info(f"{site_name} - 状态记录: 签到成功 ({signin_type})")
+        logger.info(f"{site_name} - 状态记录: {signin_type}")
     
     def record_signin_failed(self, site_name: str, reason: str) -> None:
         """记录签到失败"""

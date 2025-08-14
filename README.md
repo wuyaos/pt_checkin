@@ -1,17 +1,25 @@
-# PT站点自动签到工具
+# PT站点自动签到工具 v0.3.0
 
 用于自动签到PT站点，从项目[madwind/flexget_qbittorrent_mod](https://github.com/madwind/flexget_qbittorrent_mod)迁移而来，移除了FlexGet框架依赖和qBittorrent相关功能，专注于自动签到功能。
 
+## 🎉 v0.3.0 新特性
+
+- 🎨 **彩色日志支持** - INFO绿色、WARN黄色、ERROR红色，日志更清晰
+- 🚀 **多线程签到** - 支持并发执行，提升签到效率
+- 📊 **详细签到状态** - 区分签到成功/OCR验证码签到成功/模拟登录成功
+- 🎯 **优化用户界面** - 统一命令输出格式，使用emoji图标
+- 🔧 **代码质量提升** - 规范化代码格式，提升可维护性
 
 ## 功能特性
 
 - ✅ 支持100+个PT站点自动签到
 - ✅ Cookie自动备份和管理
-- ✅ 详细的日志记录和错误处理
+- ✅ 彩色日志记录和详细错误处理
 - ✅ 支持验证码识别（百度OCR）
+- ✅ 多线程并发签到，提升效率
+- ✅ 智能签到状态分类和追踪
 - ✅ 命令行界面，易于使用
 - ✅ 标准Python包结构，支持pip安装
-- ✅ 命令行工具
 
 ## 安装说明
 
@@ -158,7 +166,41 @@ pt-checkin debug -s sjtu
 
 # 显示完整配置信息
 pt-checkin debug --show-config
+
+# 启用详细日志模式（彩色输出）
+pt-checkin -v run
 ```
+
+#### 通知功能
+
+```bash
+# 获取签到结果通知
+pt-checkin get-notification
+
+# 仅显示标题
+pt-checkin get-notification --title-only
+
+# JSON格式输出
+pt-checkin get-notification --format json
+```
+
+## 🎨 新版本特性说明
+
+### 彩色日志
+- **INFO级别**：绿色显示，记录正常操作
+- **WARN级别**：黄色显示，记录警告信息
+- **ERROR级别**：红色显示，记录错误信息
+
+### 多线程签到
+通过配置文件设置并发数：
+```yaml
+max_workers: 3  # 同时签到的站点数量，默认为1
+```
+
+### 详细签到状态
+- **签到成功**：普通签到方式
+- **OCR验证码签到成功**：需要验证码识别的站点
+- **模拟登录成功**：需要模拟浏览器的站点
 
 #### 全局选项
 

@@ -1,4 +1,5 @@
 """任务调度器"""
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 from loguru import logger
@@ -75,7 +76,10 @@ class TaskScheduler:
                 if not should_force and self.status_manager.is_signed_today(site_name):
                     status = self.status_manager.get_site_status(site_name)
                     result = status.get('result', '已签到')
-                    skip_msg = f"{site_name} - 跳过签到: 今日已签到 ({result})"
+                    if result:
+                        skip_msg = f"{site_name} - 跳过签到: 今日已签到 ({result})"
+                    else:
+                        skip_msg = f"{site_name} - 跳过签到: 今日已签到"
                     logger.info(skip_msg)
                     skipped_entries.append({
                         'site': site_name,
@@ -121,69 +125,78 @@ class TaskScheduler:
 
             logger.info(f"任务调度 - 开始执行: {len(valid_entries)} 个站点签到")
 
-            # 执行签到（顺序执行）
+            # 执行签到（多线程执行）
+            max_workers = self.config_manager.get_max_workers()
             success_count = 0
             failed_count = 0
             success_results = []
             failed_results = []
 
-            # 顺序执行每个站点的签到
-            for entry in valid_entries:
-                try:
-                    self._sign_in_with_error_handling(entry, config)
-                    if entry.failed:
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = []
+                for entry in valid_entries:
+                    # 记录签到开始
+                    logger.info(f"{entry['site_name']} - 签到开始")
+                    future = executor.submit(self._sign_in_with_error_handling, entry, config)
+                    futures.append((entry, future))
+
+                # 等待所有任务完成
+                for entry, future in futures:
+                    try:
+                        future.result()
+                        if entry.failed:
+                            failed_count += 1
+                            failed_results.append({
+                                'site': entry['site_name'],
+                                'reason': entry.reason
+                            })
+                            # 记录签到失败状态
+                            site_name = entry['site_name']
+                            self.status_manager.record_signin_failed(site_name, entry.reason)
+                            logger.error(f"{site_name} - 签到失败: {entry.reason}")
+                        else:
+                            success_count += 1
+                            success_results.append({
+                                'site': entry['site_name'],
+                                'result': entry.get('result', '签到成功'),
+                                'messages': entry.get('messages', ''),
+                                'details': entry.get('details', ''),
+                                'messages_status': entry.get('messages_status', 'success'),
+                                'details_status': entry.get('details_status', 'success'),
+                                'messages_error': entry.get('messages_error', ''),
+                                'details_error': entry.get('details_error', ''),
+                                'signin_type': entry.get('signin_type', '签到成功')
+                            })
+                            # 记录签到成功状态
+                            self.status_manager.record_signin_success(
+                                entry['site_name'],
+                                entry.get('result', '签到成功'),
+                                entry.get('messages', ''),
+                                entry.get('details', ''),
+                                entry.get('signin_type', '签到成功')
+                            )
+                            site_name = entry['site_name']
+                            result = entry.get('result', '')
+                            logger.info(f"{site_name} - 签到成功: {result}")
+
+                            # 记录消息和详情获取状态
+                            if entry.get('messages_status') == 'failed':
+                                msg_error = entry.get('messages_error', '')
+                                logger.warning(f"{site_name} - 消息获取失败: {msg_error}")
+                            if entry.get('details_status') == 'failed':
+                                detail_error = entry.get('details_error', '')
+                                logger.warning(f"{site_name} - 详情获取失败: {detail_error}")
+                    except Exception as e:
                         failed_count += 1
                         failed_results.append({
                             'site': entry['site_name'],
-                            'reason': entry.reason
+                            'reason': f"签到异常: {e}"
                         })
-                        # 记录签到失败状态
+                        # 记录签到异常状态
                         site_name = entry['site_name']
-                        self.status_manager.record_signin_failed(site_name, entry.reason)
-                        logger.error(f"{site_name} - 签到失败: {entry.reason}")
-                    else:
-                        success_count += 1
-                        success_results.append({
-                            'site': entry['site_name'],
-                            'result': entry.get('result', '签到成功'),
-                            'messages': entry.get('messages', ''),
-                            'details': entry.get('details', ''),
-                            'messages_status': entry.get('messages_status', 'success'),
-                            'details_status': entry.get('details_status', 'success'),
-                            'messages_error': entry.get('messages_error', ''),
-                            'details_error': entry.get('details_error', ''),
-                            'signin_type': entry.get('signin_type', '签到成功')
-                        })
-                        # 记录签到成功状态
-                        self.status_manager.record_signin_success(
-                            entry['site_name'],
-                            entry.get('result', '签到成功'),
-                            entry.get('messages', ''),
-                            entry.get('details', ''),
-                            entry.get('signin_type', '签到成功')
-                        )
-                        site_name = entry['site_name']
-                        result = entry.get('result', '')
-                        logger.info(f"{site_name} - 签到成功: {result}")
-
-                        # 记录消息和详情获取状态
-                        if entry.get('messages_status') == 'failed':
-                            msg_error = entry.get('messages_error', '')
-                            logger.warning(f"{site_name} - 消息获取失败: {msg_error}")
-                        if entry.get('details_status') == 'failed':
-                            detail_error = entry.get('details_error', '')
-                            logger.warning(f"{site_name} - 详情获取失败: {detail_error}")
-                except Exception as e:
-                    failed_count += 1
-                    failed_results.append({
-                        'site': entry['site_name'],
-                        'reason': f"签到异常: {e}"
-                    })
-                    # 记录签到异常状态
-                    site_name = entry['site_name']
-                    error_msg = f"签到异常: {e}"
-                    self.status_manager.record_signin_failed(site_name, error_msg)
-                    logger.exception(f"{site_name} - 签到异常: {e}")
+                        error_msg = f"签到异常: {e}"
+                        self.status_manager.record_signin_failed(site_name, error_msg)
+                        logger.exception(f"{site_name} - 签到异常: {e}")
 
             # 统计结果
             end_time = datetime.now()

@@ -43,6 +43,7 @@ class ConfigManager:
     def _validate_config(self) -> None:
         """验证配置文件"""
         # 设置默认值
+        self.config.setdefault('max_workers', 1)
         self.config.setdefault('user_agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
         self.config.setdefault('get_messages', True)
         self.config.setdefault('get_details', True)
@@ -77,6 +78,10 @@ class ConfigManager:
         """获取User-Agent"""
         return self.config.get('user_agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
 
+    def get_max_workers(self) -> int:
+        """获取最大工作线程数"""
+        return self.config.get('max_workers', 1)
+
     def get_max_failed_attempts(self) -> int:
         """获取最大失败次数"""
         return self.config.get('max_failed_attempts', 3)
@@ -107,6 +112,7 @@ class ConfigManager:
         """为执行器准备配置"""
         return {
             'user-agent': self.get_user_agent(),
+            'max_workers': self.get_max_workers(),
             'get_messages': self.get('get_messages', True),
             'get_details': self.get('get_details', True),
             'cookie_backup': self.get('cookie_backup', True),
