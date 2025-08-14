@@ -75,18 +75,32 @@ jobs:
           echo "从pyproject.toml获取版本号: $VERSION"
         fi
 
+        # 调试信息
+        echo "🔍 调试信息:"
+        echo "  获取到的版本号: '$VERSION'"
+        echo "  版本号长度: ${#VERSION}"
+        echo "  版本号字符: $(echo -n "$VERSION" | od -c)"
+
+        # 验证版本号不为空
+        if [ -z "$VERSION" ]; then
+          echo "❌ 版本号为空"
+          echo "📋 pyproject.toml内容:"
+          cat pyproject.toml
+          exit 1
+        fi
+
         # 验证版本号格式
-        if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+$ ]]; then
-          echo "❌ 版本号格式不正确: $VERSION"
-          echo "预期格式: x.y.z 或 x.y"
+        if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+          echo "❌ 版本号格式不正确: '$VERSION'"
+          echo "预期格式: x.y 或 x.y.z"
+          echo "📋 pyproject.toml中包含version的行:"
+          grep -n "version" pyproject.toml
           exit 1
         fi
 
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "tag_name=v$VERSION" >> $GITHUB_OUTPUT
         echo "✅ 最终版本号: $VERSION"
-        echo "📋 当前pyproject.toml中的version行:"
-        grep '^version = ' pyproject.toml
 
     - name: Build wheel and source distribution
       run: |
