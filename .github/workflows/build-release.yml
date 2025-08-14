@@ -18,6 +18,11 @@ on:
         required: false
         default: true
         type: boolean
+      use_trusted_publishing:
+        description: '使用可信发布（需要预先配置）'
+        required: false
+        default: false
+        type: boolean
       prerelease:
         description: '是否为预发布版本'
         required: false
@@ -35,6 +40,7 @@ jobs:
 
     permissions:
       contents: write  # 用于创建release
+      id-token: write  # 用于PyPI可信发布（当启用时）
 
     steps:
     - name: Checkout code
@@ -156,12 +162,20 @@ jobs:
         prerelease: ${{ github.event.inputs.prerelease }}
         generate_release_notes: true
 
-    - name: Publish to PyPI
-      if: ${{ github.event.inputs.publish_pypi == 'true' }}
+    - name: Publish to PyPI (API Token)
+      if: ${{ github.event.inputs.publish_pypi == 'true' && github.event.inputs.use_trusted_publishing != 'true' }}
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: __token__
         password: ${{ secrets.PYPI_API_TOKEN }}
+        attestations: false
+        print-hash: true
+        verbose: true
+
+    - name: Publish to PyPI (Trusted Publishing)
+      if: ${{ github.event.inputs.publish_pypi == 'true' && github.event.inputs.use_trusted_publishing == 'true' }}
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
         print-hash: true
         verbose: true
 

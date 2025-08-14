@@ -16,6 +16,7 @@
   - `version`: 发布版本号 (留空则自动从pyproject.toml获取)
   - `create_release`: 是否创建GitHub Release (默认: true)
   - `publish_pypi`: 是否发布到PyPI (默认: true)
+  - `use_trusted_publishing`: 使用可信发布而非API Token (默认: false)
   - `prerelease`: 是否为预发布版本 (默认: false)
 
 ## 🚀 使用指南
@@ -31,6 +32,7 @@
    - **版本号**: 留空则自动从pyproject.toml获取，或手动输入 (例如: 1.2.0)
    - **创建Release**: 是否创建GitHub Release (默认: 是)
    - **发布PyPI**: 是否发布到PyPI (默认: 是)
+   - **使用可信发布**: 使用Trusted Publishing而非API Token (默认: 否)
    - **预发布版本**: 是否为预发布版本 (默认: 否)
 5. 点击"Run workflow"执行
 
@@ -55,21 +57,33 @@ git push origin v1.2.0
 
 ### PyPI发布配置
 
-**必需配置**:
-1. 在PyPI网站生成API Token
-2. 在GitHub仓库设置 → Secrets and variables → Actions 中添加：
-   - Name: `PYPI_API_TOKEN`
-   - Value: 你的PyPI API Token (以`pypi-`开头)
+支持两种发布方式，可在工作流执行时选择：
 
-**获取PyPI API Token步骤**:
+#### 方式1: API Token (默认)
+
+**配置步骤**:
 1. 登录 [PyPI官网](https://pypi.org/)
 2. 进入 Account settings → API tokens
 3. 点击 "Add API token"
 4. 设置Token名称和权限范围
-5. 复制生成的Token到GitHub Secrets
+5. 在GitHub仓库设置 → Secrets and variables → Actions 中添加：
+   - Name: `PYPI_API_TOKEN`
+   - Value: 你的PyPI API Token (以`pypi-`开头)
+
+#### 方式2: 可信发布 (Trusted Publishing)
+
+**配置步骤**:
+1. 在PyPI项目设置中配置Trusted Publisher
+2. 添加GitHub Actions作为可信发布源
+3. 配置仓库名称、工作流文件名等信息
+4. 在工作流执行时选择 `use_trusted_publishing: true`
+
+**优势**: 无需管理API Token，更安全便捷
 
 ### 权限要求
+
 - `contents: write` - 用于创建GitHub Release
+- `id-token: write` - 用于PyPI可信发布（当启用时）
 
 ## 📋 工作流状态
 
