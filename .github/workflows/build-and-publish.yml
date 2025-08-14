@@ -84,10 +84,10 @@ jobs:
           mkdir -p qinglong
           
           # 复制到qinglong目录
-          cp config_example.yml qinglong/config_example.yml
+          cp config_example.yml config_example.yml
           
           # 提交更改
-          git add qinglong/config_example.yml
+          git add config_example.yml
           if git diff --staged --quiet; then
             echo "配置文件无变化，跳过提交"
           else
