@@ -155,6 +155,9 @@ class MainClass(NexusPHP):
         code, img_byte_arr = baidu_ocr.get_ocr_code(img, entry, config)
         if not entry.failed:
             if len(code) >= 4:  # 验证码长度可能不是固定6位
+                # OCR成功后清理验证码图片
+                baidu_ocr.cleanup_captcha_image(captcha_path, "open")
+
                 # 构建POST URL
                 signin_url = f"{work.url}?cmd=signin"
 

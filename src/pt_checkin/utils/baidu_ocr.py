@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import threading
 from io import BytesIO
@@ -107,6 +108,16 @@ def get_ocr_code(img: Image.Image, entry: SignInEntry, config: dict) -> tuple:
         return None, img_byte_arr.getvalue()
 
     return code, img_byte_arr.getvalue()
+
+
+def cleanup_captcha_image(image_path: str, site_name: str = "") -> None:
+    """清理验证码图片文件"""
+    try:
+        if os.path.exists(image_path):
+            os.remove(image_path)
+            logger.debug(f"{site_name} - 已清理验证码图片: {os.path.basename(image_path)}")
+    except Exception as e:
+        logger.warning(f"{site_name} - 清理验证码图片失败: {e}")
 
 
 def _detect_noise(img: Image.Image, i: int, j: int, width: int, height: int) -> bool:

@@ -24,6 +24,7 @@ def cli(ctx, config: str, verbose: bool):
         "<level>{message}</level>"
     )
 
+    # 控制台输出
     if verbose:
         logger.add(
             lambda msg: print(msg, end=''),
@@ -39,11 +40,36 @@ def cli(ctx, config: str, verbose: bool):
             colorize=True
         )
 
+    # 文件输出将在后续初始化时配置
+
     # 初始化配置管理器
     try:
         config_manager = ConfigManager(config)
         ctx.ensure_object(dict)
         ctx.obj['config_manager'] = config_manager
+
+        # 配置文件日志输出
+        try:
+            log_file_path = config_manager.config_dir / "pt_checkin.log"
+
+            # 添加文件日志处理器
+            file_format = (
+                "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | "
+                "{name}:{function}:{line} - {message}"
+            )
+            logger.add(
+                str(log_file_path),
+                level="DEBUG",
+                format=file_format,
+                rotation="10 MB",  # 日志文件大小超过10MB时轮转
+                retention="30 days",  # 保留30天的日志
+                compression="zip",  # 压缩旧日志文件
+                encoding="utf-8"
+            )
+            logger.info(f"日志文件输出: {log_file_path.name}")
+        except Exception as log_e:
+            logger.warning(f"日志文件配置失败: {log_e}")
+
         logger.info("程序初始化 - 完成")
     except Exception as e:
         logger.error(f"程序初始化 - 失败: {e}")
@@ -313,12 +339,16 @@ def run_signin(
         "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
         "<level>{message}</level>"
     )
+
+    # 控制台输出
     logger.add(
         lambda msg: print(msg, end=''),
         level="INFO",
         format=log_format,
         colorize=True
     )
+
+    # 文件日志将由主程序配置
 
     try:
         # 初始化配置管理器
