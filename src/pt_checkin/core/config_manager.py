@@ -14,6 +14,7 @@ class ConfigManager:
     
     def __init__(self, config_path: str = 'config.yml'):
         self.config_path = pathlib.Path(config_path)
+        self.config_dir = self.config_path.parent  # 配置文件所在目录
         self.config: Dict[str, Any] = {}
         self.load_config()
     
@@ -93,7 +94,17 @@ class ConfigManager:
         return self.config.get('failed_retry_interval', 2)
     
     def get_baidu_ocr_config(self) -> Dict[str, str]:
-        """获取百度OCR配置"""
+        """获取百度OCR配置
+        优先读取新格式 aicpocr: {app_id, api_key, secret_key}，
+        回退兼容老格式顶层 baidu_ocr_app_id 等键。
+        """
+        if isinstance(self.config.get('aipocr'), dict):
+            a = self.config['aipocr']
+            return {
+                'app_id': a.get('app_id', ''),
+                'api_key': a.get('api_key', ''),
+                'secret_key': a.get('secret_key', ''),
+            }
         return {
             'app_id': self.config.get('baidu_ocr_app_id', ''),
             'api_key': self.config.get('baidu_ocr_api_key', ''),
@@ -109,5 +120,7 @@ class ConfigManager:
             'get_details': self.get('get_details', True),
             'cookie_backup': self.get('cookie_backup', True),
             'aipocr': self.get_baidu_ocr_config(),
+            'flaresolverr': self.config.get('flaresolverr', {}),
+            'config_dir': str(self.config_dir),  # 配置文件目录路径
             'sites': self.get_sites()
         }

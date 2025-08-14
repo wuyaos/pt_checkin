@@ -88,6 +88,9 @@ class MainClass(NexusPHP):
 
             # 验证码图片使用普通requests下载，不使用FlareSolverr和cookie
             import requests
+            import os
+            from datetime import datetime
+
             try:
                 # 直接使用requests下载图片，不经过FlareSolverr
                 headers = {
@@ -99,6 +102,26 @@ class MainClass(NexusPHP):
                 if img_response.status_code != 200:
                     entry.fail_with_prefix(f'Get image failed: HTTP {img_response.status_code}')
                     return None
+
+                # 保存验证码图片到配置文件同级目录
+                config_dir = config.get('config_dir', '.')
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                captcha_filename = f'open_captcha_{timestamp}.png'
+                captcha_path = os.path.join(config_dir, captcha_filename)
+
+                # 清理旧的验证码图片
+                try:
+                    for file in os.listdir(config_dir):
+                        if file.startswith('open_captcha_') and file.endswith('.png'):
+                            old_path = os.path.join(config_dir, file)
+                            os.remove(old_path)
+                except Exception as cleanup_e:
+                    # 清理失败不影响主流程
+                    pass
+
+                # 保存新的验证码图片
+                with open(captcha_path, 'wb') as f:
+                    f.write(img_response.content)
 
             except Exception as e:
                 entry.fail_with_prefix(f'Get image failed: {e}')
@@ -131,16 +154,18 @@ class MainClass(NexusPHP):
             return None
         code, img_byte_arr = baidu_ocr.get_ocr_code(img, entry, config)
         if not entry.failed:
-            if len(code) == 6:
-                params = {
-                    'cmd': 'signin'
-                }
+            if len(code) >= 4:  # 验证码长度可能不是固定6位
+                # 构建POST URL
+                signin_url = f"{work.url}?cmd=signin"
+
+                # 构建POST数据
                 data = {
-                    'imagehash': (None, image_hash),
-                    'imagestring': (None, code)
+                    'action': 'signin',
+                    'imagehash': image_hash,
+                    'imagestring': code
                 }
                 return self.request(
-                    entry, 'post', work.url, config, files=data, params=params
+                    entry, 'post', signin_url, config, data=data
                 )
         return None
 

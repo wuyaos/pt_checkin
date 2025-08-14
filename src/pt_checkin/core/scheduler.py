@@ -20,7 +20,9 @@ class TaskScheduler:
     
     def __init__(self, config_manager: ConfigManager):
         self.config_manager = config_manager
-        self.status_manager = SignInStatusManager()
+        # 状态文件保存到配置文件同级目录
+        status_file = config_manager.config_dir / 'signin_status.json'
+        self.status_manager = SignInStatusManager(str(status_file))
         self.running = False
     
     def setup_schedule(self) -> None:

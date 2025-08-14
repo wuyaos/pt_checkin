@@ -111,12 +111,17 @@ class Request:
             elif method.upper() == 'POST':
                 # 处理POST数据
                 post_data = ""
+                logger.info(f"POST kwargs: {kwargs}")
                 if 'data' in kwargs:
                     import urllib.parse
                     post_data = urllib.parse.urlencode(kwargs['data'])
+                    logger.info(f"POST data encoded: {post_data}")
                 elif 'json' in kwargs:
                     import json
                     post_data = json.dumps(kwargs['json'])
+                    logger.info(f"POST json encoded: {post_data}")
+                else:
+                    logger.warning("No POST data found in kwargs")
 
                 solution = client.request_post(url, post_data, headers, cookies)
             else:
