@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PT签到工具 - 简化版CLI
+PT签到工具 - CLI
 """
 import click
 from loguru import logger

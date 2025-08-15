@@ -1,8 +1,5 @@
 from typing import Final
-
-
 from ..schema.nexusphp import Attendance
-
 
 class MainClass(Attendance):
     URL: Final = 'https://hdtime.org/'
