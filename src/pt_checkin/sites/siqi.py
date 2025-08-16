@@ -32,9 +32,11 @@ class MainClass(Attendance):
                 succeed_regex=[
                     '这是您的第.*?次签到，已连续签到.*?天，本次签到获得.*?个魔力值',
                     '您今天已经签到过了',
-                    '签到成功'
+                    '签到成功',
+                    '<h2.*?>签到成功</h2>'
                 ],
                 assert_state=(check_final_state, SignState.SUCCEED),
+                is_base_content=True  # 添加这个标志，确保响应内容被设置为base_content
             ),
         ]
 
@@ -77,13 +79,13 @@ class MainClass(Attendance):
         full_url = self.URL.rstrip('/') + captcha_url
 
         try:
-            captcha_response = requests.get(
-                full_url,
-                cookies=entry.get('cookies', {}),
-                headers={'User-Agent': entry.get('user-agent', '')},
+            # 使用标准requests获取验证码图片，避免FlareSolverr的开销
+            captcha_response = self.request(
+                entry, 'get', captcha_url, config,
+                force_default=True,  # 强制使用标准requests
                 timeout=30
             )
-            if captcha_response.status_code != 200:
+            if not captcha_response or captcha_response.status_code != 200:
                 entry.fail_with_prefix('无法获取验证码图片')
                 return None
         except Exception as e:

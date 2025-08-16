@@ -179,10 +179,9 @@ class MainClass(NexusPHP):
             'detail_sources': {
                 'default': {
                     'elements': {
-                        'bar': (
-                            '#info_block > tbody > tr > td > table > '
-                            'tbody > tr > td:nth-child(2)'
-                        )
+                        # 使用更灵活的选择器，匹配info_block表格中的用户信息区域
+                        'bar': '#info_block td',
+                        'table': '#info_block'
                     }
                 }
             }

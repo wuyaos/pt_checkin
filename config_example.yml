@@ -14,17 +14,16 @@ aipocr:
   api_key    : ''             # 百度OCR API Key
   secret_key : ''
 
-# FlareSolverr配置 (可选，用于绕过Cloudflare保护)
-# flaresolverr:
-#   server_url    : 'http://127.0.0.1:8191'  # FlareSolverr服务器地址
-#   timeout       : 60                       # 请求超时时间（秒）
-#   enable_all    : false                    # 是否对所有站点启用FlareSolverr
-#   enabled_sites :                          # 启用FlareSolverr的站点列表
-#     - open                                 # 站点名称
-#     - site2
-#
-# 简化配置（仅指定服务器地址，其他使用默认值）:
-# flaresolverr    : 'http://192.168.123.179:8191'
+# 浏览器自动化配置
+browser_automation:
+  enabled: true                       # 是否启用浏览器自动化
+  headless: false                      # 是否使用无头模式
+  timeout: 30                         # 操作超时时间（秒）
+  browser_path: ''                    # 自定义浏览器路径
+  user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36'
+  browser_arguments:                  # 额外的浏览器启动参数
+    # - '--disable-web-security'
+    - '--disable-features=VizDisplayCompositor'
 
 # 站点配置
 sites:

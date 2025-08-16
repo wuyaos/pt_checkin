@@ -118,6 +118,7 @@ class ConfigManager:
             'cookie_backup': self.get('cookie_backup', True),
             'aipocr': self.get_baidu_ocr_config(),
             'flaresolverr': self.config.get('flaresolverr', {}),
+            'browser_automation': self.config.get('browser_automation', {}),  # 添加浏览器自动化配置
             'config_dir': str(self.config_dir),  # 配置文件目录路径
             'sites': self.get_sites()
         }

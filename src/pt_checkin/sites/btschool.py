@@ -25,6 +25,22 @@ class MainClass(NexusPHP):
         'days': [280, 700]
     }
 
+    @classmethod
+    def sign_in_build_entry(cls, entry: SignInEntry, config: dict) -> None:
+        """构建签到条目，启用浏览器模拟以绕过Cloudflare"""
+        super().sign_in_build_entry(entry, config)
+
+        # 为BTSchool启用浏览器模拟
+        entry['site_name'] = 'btschool'
+        entry['request_method'] = 'browser'  # 强制使用浏览器模拟
+
+        # 添加成功标识配置
+        entry['success_indicators'] = {
+            'logo': 'class="logo">BTSCHOOL</div>',
+            'slogan': '汇聚每一个人的影响力',
+            'keywords': ['种子', 'torrent', '用户', '做种积分']
+        }
+
     def sign_in_build_workflow(self, entry: SignInEntry, config: dict) -> list[Work]:
         return [
             Work(

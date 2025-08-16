@@ -316,8 +316,27 @@ class TaskScheduler:
             # 清理旧记录
             self.status_manager.cleanup_old_records()
 
+            # 关闭浏览器资源
+            self._cleanup_browser_resources()
+
         except Exception as e:
             logger.exception(f"任务调度 - 执行异常: {e}")
+            # 即使出现异常也要清理浏览器资源
+            self._cleanup_browser_resources()
+
+    def _cleanup_browser_resources(self):
+        """清理浏览器资源 - 关闭所有剩余的tab和主浏览器"""
+        try:
+            from ..utils.browser_manager import get_browser_manager
+            browser_manager = get_browser_manager()
+            if browser_manager:
+                # 关闭所有剩余的tab
+                browser_manager.close_all_tabs()
+                # 完全关闭浏览器
+                browser_manager.close_browser()
+                logger.info("所有浏览器资源已清理完成")
+        except Exception as e:
+            logger.warning(f"清理浏览器资源失败: {e}")
 
     def _sign_in_with_error_handling(self, entry: SignInEntry, config: dict) -> None:
         """带错误处理的签到"""
