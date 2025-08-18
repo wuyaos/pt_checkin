@@ -587,12 +587,12 @@ class MainClass(NexusPHP):
     def details_selector(self) -> dict:
         selector = super().details_selector
         net_utils.dict_merge(selector, {
-            'user_id': r'userdetails\.php\?id=(\d+)',  # 从用户链接中提取用户ID的正则表达式
+            'user_id': None,
             'detail_sources': {
                 'default': {
                     'link': None,
                     'elements': {
-                        'bar': '#info_block td.bottom span.medium',
+                        'bar': '#info_block > tbody > tr > td > table > tbody > tr > td:nth-child(1) > span',
                         'table': None
                     }
                 }

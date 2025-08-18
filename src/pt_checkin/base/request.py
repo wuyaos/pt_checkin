@@ -27,10 +27,6 @@ class RequestMethod(Enum):
     BROWSER = 'browser'          # 浏览器自动化请求
     AUTO = 'auto'               # 自动选择（默认行为）
 
-
-# MockResponse类已移除，因为它只用于已弃用的FlareSolverr
-
-
 class BrowserResponse:
     """浏览器响应对象，用于DrissionPage返回结果"""
 
