@@ -11,24 +11,24 @@ from requests import Response
 from ..base.detail import Detail
 from ..core.entry import SignInEntry
 from ..base.message import Message
-from ..base.request import RequestFactory, NetworkState, check_network_state
+from ..base.request import RequestHandler, NetworkState, check_network_state
 from ..base.sign_in import Work, check_state, SignIn
 from ..utils import net_utils
 from ..utils.net_utils import get_module_name
 
 
 class PrivateTorrent(SignIn, Detail, Message, ABC):
-    """PT站点基类，使用RequestFactory创建请求实例"""
+    """PT站点基类，使用新的统一请求处理架构"""
 
     def __init__(self):
-        self._request_instance = None
+        self._request_handler = None
 
     def request(self, entry: SignInEntry, method: str, url: str,
                config: dict = None, **kwargs):
-        """发送HTTP请求，使用RequestFactory创建合适的请求实例"""
-        if self._request_instance is None:
-            self._request_instance = RequestFactory.create_request(entry, config)
-        return self._request_instance.request(entry, method, url, config, **kwargs)
+        """发送HTTP请求，使用新的RequestHandler"""
+        if self._request_handler is None:
+            self._request_handler = RequestHandler(entry, config)
+        return self._request_handler.request(method, url, **kwargs)
 
     @property
     @abstractmethod

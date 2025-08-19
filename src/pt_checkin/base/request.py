@@ -559,89 +559,287 @@ class BrowserAutomationRequest(BaseRequest):
             return None
 
 
+class RequestHandler:
+    """统一请求处理器 - 合并 RequestFactory 和 SmartRequest 的功能"""
+
+    def __init__(self, entry: SignInEntry, config: Optional[dict] = None):
+        """
+        初始化请求处理器
+
+        Args:
+            entry: 签到条目
+            config: 配置字典
+        """
+        self.entry = entry
+        self.config = config or {}
+        self.session: Optional[requests.Session] = None
+        self._browser_manager = None
+
+    def request(self,
+                method: str,
+                url: str,
+                force_default: bool = False,
+                **kwargs) -> Response | None:
+        """
+        发送HTTP请求 - 智能选择最佳请求方式
+
+        Args:
+            method: HTTP方法 (GET, POST等)
+            url: 请求URL
+            force_default: 强制使用标准requests（用于验证码图片下载等场景）
+            **kwargs: 其他请求参数
+
+        Returns:
+            Response对象或None
+        """
+        # 如果强制使用默认方式，直接使用标准请求
+        if force_default:
+            logger.debug("强制使用标准请求方式")
+            return self._request_with_standard(method, url, **kwargs)
+
+        # 智能选择请求方式
+        request_method = self._determine_request_method()
+
+        logger.info(f"选择请求方式: {request_method}")
+
+        if request_method == RequestMethod.BROWSER:
+            return self._request_with_browser(method, url, **kwargs)
+        else:
+            return self._request_with_standard(method, url, **kwargs)
+
+    def _determine_request_method(self) -> RequestMethod:
+        """智能确定请求方式"""
+
+        # 检查entry中的显式配置
+        explicit_method = self.entry.get('request_method')
+        if explicit_method:
+            try:
+                return RequestMethod(explicit_method)
+            except ValueError:
+                logger.warning(f"无效的请求方法: {explicit_method}")
+
+        # 检查是否强制使用浏览器
+        if self.entry.get('force_browser', False):
+            return RequestMethod.BROWSER
+
+        # 检查站点特定配置
+        site_name = self.entry.get('site_name') or self._extract_site_name(self.entry.get('url', ''))
+        if site_name:
+            # 某些站点默认使用浏览器
+            browser_sites = ['btschool', 'hdsky', 'hdtime']  # 可配置
+            if site_name in browser_sites:
+                logger.debug(f"站点 {site_name} 默认使用浏览器模拟")
+                return RequestMethod.BROWSER
+
+        # 默认使用标准请求
+        return RequestMethod.DEFAULT
+
+    def _init_session(self) -> None:
+        """初始化session"""
+        if not self.session:
+            self.session = requests.Session()
+            if entry_headers := self.entry.get('headers'):
+                self.session.headers.update(entry_headers)
+            if entry_cookie := self.entry.get('cookie'):
+                cookies = net_utils.cookie_str_to_dict(entry_cookie)
+                self.session.cookies.update(cookies)
+            self.session.mount('http://', HTTPAdapter(max_retries=2))
+            self.session.mount('https://', HTTPAdapter(max_retries=2))
+
+    def _update_session_cookie(self) -> None:
+        """更新session cookie到entry中"""
+        if self.session:
+            cookie_items = self.session.cookies.items()
+            session_cookie = ' '.join([f'{k}={v};' for k, v in cookie_items])
+            self.entry['session_cookie'] = session_cookie
+
+    def _get_browser_manager(self):
+        """获取浏览器管理器实例"""
+        if self._browser_manager is None:
+            try:
+                from ..utils.browser_manager import get_browser_manager
+                self._browser_manager = get_browser_manager(self.config)
+            except ImportError as e:
+                logger.error(f"浏览器管理器导入失败: {e}")
+                return None
+            except Exception as e:
+                logger.error(f"浏览器管理器创建失败: {e}")
+                return None
+        return self._browser_manager
+
+    def _extract_site_name(self, url: str) -> Optional[str]:
+        """从URL提取站点名称"""
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            domain = parsed.netloc.lower()
+
+            # 简单的站点名称映射
+            site_mapping = {
+                'pt.btschool.club': 'btschool',
+                'hdsky.me': 'hdsky',
+                'hdtime.org': 'hdtime',
+            }
+
+            return site_mapping.get(domain)
+        except Exception:
+            return None
+
+    def _request_with_standard(self, method: str, url: str, **kwargs) -> Response | None:
+        """使用标准requests发送请求"""
+        try:
+            self._init_session()
+
+            logger.debug(f"标准请求: {method} {url}")
+
+            response = self.session.request(method, url, timeout=60, **kwargs)
+
+            # 检查Cloudflare
+            if cf_detected(response):
+                logger.warning(f"检测到Cloudflare保护: {url}")
+                self.entry.fail_with_prefix(
+                    f'url: {url} detected CloudFlare DDoS-GUARD. '
+                    'Consider using browser automation.'
+                )
+            elif response is not None and response.status_code != 200:
+                self.entry.fail_with_prefix(
+                    f'url: {url} response.status_code={response.status_code}'
+                )
+
+            # 更新session cookie
+            self._update_session_cookie()
+
+            return response
+
+        except Exception as e:
+            logger.error(f"标准请求失败: {e}")
+            self.entry.fail_with_prefix(
+                NetworkState.NETWORK_ERROR.value.format(url=url, error=e)
+            )
+        return None
+
+    def _request_with_browser(self, method: str, url: str, **kwargs) -> Response | None:
+        """使用浏览器自动化发送请求"""
+        try:
+            browser_manager = self._get_browser_manager()
+            if not browser_manager:
+                logger.error("浏览器管理器不可用")
+                self.entry.fail_with_prefix("Browser manager not available")
+                return None
+
+            # 获取站点名称
+            site_name = self.entry.get('site_name') or self._extract_site_name(url) or 'default'
+
+            # 获取站点专用tab页面
+            headless = self.config.get('browser_automation', {}).get('headless', True)
+            page = browser_manager.get_site_tab(site_name, headless=headless)
+
+            try:
+                # 设置cookies
+                if entry_cookie := self.entry.get('cookie'):
+                    # 处理相对URL和绝对URL
+                    if url.startswith('http'):
+                        url_parts = url.split('/')
+                        base_url = f"{url_parts[0]}//{url_parts[2]}"
+                    else:
+                        site_url = self.entry.get('url', '')
+                        if site_url.startswith('http'):
+                            site_parts = site_url.split('/')
+                            base_url = f"{site_parts[0]}//{site_parts[2]}"
+                        else:
+                            base_url = getattr(self.entry, 'URL', 'https://hdsky.me')
+                            if not base_url.startswith('http'):
+                                base_url = f"https://{base_url}"
+
+                    browser_manager.set_cookies(page, entry_cookie, base_url)
+
+                # 构建完整URL
+                if not url.startswith('http'):
+                    if url.startswith('/'):
+                        full_url = base_url + url
+                    else:
+                        full_url = base_url + '/' + url
+                else:
+                    full_url = url
+
+                logger.info(f"浏览器访问: {full_url}")
+
+                # 访问页面
+                if method.upper() == 'GET':
+                    page.get(full_url)
+                elif method.upper() == 'POST':
+                    page.get(full_url)
+                    logger.warning("POST请求的表单提交功能待实现")
+                else:
+                    logger.error(f"浏览器不支持的请求方法: {method}")
+                    return None
+
+                # 创建响应对象
+                response = BrowserResponse(page, url)
+
+                # 更新entry中的cookie
+                try:
+                    cookies = page.get_cookies()
+                    if cookies:
+                        cookie_list = []
+                        for cookie in cookies:
+                            cookie_list.append(f"{cookie['name']}={cookie['value']}")
+                        self.entry['session_cookie'] = '; '.join(cookie_list)
+                except Exception as e:
+                    logger.debug(f"更新cookie失败: {e}")
+
+                return response
+
+            finally:
+                # 关闭站点tab页面
+                try:
+                    browser_manager.close_site_tab(site_name)
+                    logger.debug(f"站点 {site_name} 的tab页面已关闭")
+                except Exception as e:
+                    logger.warning(f"关闭站点 {site_name} tab失败: {e}")
+
+        except Exception as e:
+            logger.error(f"浏览器请求错误: {e}")
+            self.entry.fail_with_prefix(f"Browser request error: {e}")
+            return None
+
+
 class RequestFactory:
-    """请求工厂类，根据配置创建相应的Request实例"""
+    """请求工厂类 - 保持向后兼容性"""
 
     @staticmethod
     def create_request(entry: SignInEntry,
                       config: Optional[dict] = None) -> BaseRequest:
         """
-        根据配置创建相应的Request实例
+        创建请求实例 - 使用新的 RequestHandler
 
         Args:
             entry: 签到条目
             config: 配置字典
 
         Returns:
-            BaseRequest实例
+            BaseRequest实例（实际返回包装的RequestHandler）
         """
-        # 新版本统一使用SmartRequest，它会自动选择最佳请求方式
-        logger.debug("创建SmartRequest实例")
-        return SmartRequest()
-
-    @staticmethod
-    def create_legacy_request(entry: SignInEntry,
-                            config: Optional[dict] = None) -> BaseRequest:
-        """
-        创建传统的Request实例（保持向后兼容）
-
-        Args:
-            entry: 签到条目
-            config: 配置字典
-
-        Returns:
-            BaseRequest实例
-        """
-        method_type = RequestFactory._get_method_type_from_config(entry, config)
-
-        if method_type == RequestMethod.BROWSER:
-            return BrowserAutomationRequest()
-        elif method_type == RequestMethod.DEFAULT:
-            return StandardRequest()
-        elif method_type == RequestMethod.AUTO:
-            # 使用SmartRequest进行智能选择
-            return SmartRequest()
-        else:
-            # 默认使用SmartRequest
-            logger.warning(f"Unknown method_type: {method_type}, using SmartRequest")
-            return SmartRequest()
-
-    @staticmethod
-    def _get_method_type_from_config(entry: SignInEntry,
-                                   config: Optional[dict]) -> RequestMethod:
-        """从配置中获取请求方法类型"""
-        if not config:
-            return RequestMethod.AUTO
-
-        site_name = entry.get('title', '').lower()
-
-        # 1. 检查站点特定的request_method配置
-        site_config = config.get('sites', {}).get(site_name, {})
-        if isinstance(site_config, dict) and 'request_method' in site_config:
-            method_str = site_config['request_method'].upper()
-            try:
-                return RequestMethod(method_str.lower())
-            except ValueError:
-                logger.warning(
-                    f"Invalid request_method '{method_str}' for site "
-                    f"{site_name}, using AUTO"
-                )
-
-        # 2. 检查全局request_method配置
-        global_method = config.get('request_method', '').upper()
-        if global_method:
-            try:
-                return RequestMethod(global_method.lower())
-            except ValueError:
-                logger.warning(
-                    f"Invalid global request_method '{global_method}', "
-                    f"using AUTO"
-                )
-
-        # 3. 默认使用AUTO模式
-        return RequestMethod.AUTO
+        logger.debug("创建RequestHandler实例")
+        return RequestHandlerAdapter(entry, config)
 
 
+class RequestHandlerAdapter(BaseRequest):
+    """RequestHandler适配器 - 保持与BaseRequest接口兼容"""
+
+    def __init__(self, entry: SignInEntry, config: Optional[dict] = None):
+        super().__init__()
+        self.handler = RequestHandler(entry, config)
+
+    def request(self,
+                entry: SignInEntry,
+                method: str,
+                url: str,
+                config: Optional[dict] = None,
+                force_default: bool = False,
+                **kwargs) -> Response | None:
+        """适配器方法 - 转发到RequestHandler"""
+        return self.handler.request(method, url, force_default, **kwargs)
 
 
 # 便捷函数

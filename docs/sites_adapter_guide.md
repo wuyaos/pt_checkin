@@ -204,7 +204,6 @@ response = self.request(entry, 'get', captcha_url, force_default=True)
 
 ### 请求方式说明
 - **default**: 使用标准requests，速度最快，适合无保护的站点
-- **flaresolverr**: 使用FlareSolverr代理，可绕过Cloudflare保护
 - **browser**: 使用浏览器自动化，适合复杂交互（暂未实现）
 - **auto**: 系统自动判断，根据站点配置和检测结果选择最佳方式
 
@@ -230,20 +229,6 @@ def sign_in_build_login_data(self, login: dict, last_content: str) -> dict:
     }
 ```
 
-### 2. 需要FlareSolverr的站点
-在配置文件中启用：
-```yaml
-flaresolverr:
-  enabled_sites: ['example']
-```
-
-或在代码中强制使用：
-```python
-def sign_in_by_get(self, entry: SignInEntry, config: dict,
-                   work: Work, last_content: str) -> Response | None:
-    return self.request(entry, 'get', work.url,
-                       method_type=RequestMethod.FLARESOLVERR)
-```
 
 ### 3. 需要浏览器自动化的站点
 ```python
