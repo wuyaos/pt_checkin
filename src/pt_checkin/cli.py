@@ -3,12 +3,11 @@
 PT签到工具 - CLI
 """
 import click
-from ..base.log_manager import get_logger
-
-logger = get_logger(__name__)
 from .core.config_manager import ConfigManager
 from .base.log_manager import init_logging
+from .base.log_manager import get_logger
 
+logger = get_logger(__name__)
 
 @click.group()
 @click.option('-c', '--config', default='config.yml', help='配置文件路径')

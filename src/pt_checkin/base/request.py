@@ -37,7 +37,7 @@ def check_network_state(entry: SignInEntry,
         urls = [param]
 
     if response is None or (check_content and content is None):
-                entry.fail_with_prefix(
+        entry.fail_with_prefix(
             NetworkState.NETWORK_ERROR.value.format(url=urls[0], error='Response is None')
         )
         return NetworkState.NETWORK_ERROR
@@ -48,12 +48,12 @@ def check_network_state(entry: SignInEntry,
         return maintenance_state
 
     if cf_detected(response):
-                entry.fail_with_prefix(NetworkState.CLOUDFLARE_BLOCKED.value.format(url=urls[0]))
+        entry.fail_with_prefix(NetworkState.CLOUDFLARE_BLOCKED.value.format(url=urls[0]))
         return NetworkState.CLOUDFLARE_BLOCKED
 
     if response.url not in urls:
-                entry.fail_with_prefix(
-            NetworkState.URL_REDIRECT.value.format(original_url=urls[0], redirect_url=response.url)
+        entry.fail_with_prefix(
+        NetworkState.URL_REDIRECT.value.format(original_url=urls[0], redirect_url=response.url)
         )
         return NetworkState.URL_REDIRECT
 
@@ -69,7 +69,7 @@ def check_maintenance_state(response: Response, url: str) -> NetworkState:
         title = ""
 
         if hasattr(response, 'text') and response.text:
-                        title_match = re.search(r'<title[^>]*>(.*?)</title>', response.text, re.IGNORECASE | re.DOTALL)
+            title_match = re.search(r'<title[^>]*>(.*?)</title>', response.text, re.IGNORECASE | re.DOTALL)
             if title_match:
                 title = title_match.group(1).strip().lower()
 
@@ -122,7 +122,7 @@ class RequestHandler:
 
         log_key = f"{site_name}_{method_name}"
         current_time = time.time()
-                if log_key not in self._last_request_method_log or current_time - self._last_request_method_log.get(log_key, 0) > 30:
+        if log_key not in self._last_request_method_log or current_time - self._last_request_method_log.get(log_key, 0) > 30:
             logger.info(f"{site_name} - 🌐 选择请求方式: {method_name}")
             self._last_request_method_log[log_key] = current_time
 
@@ -132,7 +132,7 @@ class RequestHandler:
 
     def _determine_request_method(self) -> RequestMethod:
         """根据配置确定请求方式"""
-                site_name = self.entry.get('site_name') or UrlUtils.extract_site_name(self.entry.get('url', ''))
+        site_name = self.entry.get('site_name') or UrlUtils.extract_site_name(self.entry.get('url', ''))
         if self._should_use_flaresolverr(site_name):
             return RequestMethod.FLARESOLVERR
         return RequestMethod.DEFAULT
@@ -173,7 +173,7 @@ class RequestHandler:
 
             if cf_detected(response):
                 logger.warning(f"检测到Cloudflare保护: {url}")
-                                self.entry.fail_with_prefix(f'url: {url} detected CloudFlare DDoS-GUARD. Consider using FlareSolverr.')
+                self.entry.fail_with_prefix(f'url: {url} detected CloudFlare DDoS-GUARD. Consider using FlareSolverr.')
             elif response.status_code not in [200, 404]: # 404 for some special cases
                                 self.entry.fail_with_prefix(f'url: {url} response.status_code={response.status_code}')
 
@@ -181,7 +181,7 @@ class RequestHandler:
             return response
         except Exception as e:
             logger.error(f"标准请求失败: {e}")
-                        self.entry.fail_with_prefix(NetworkState.NETWORK_ERROR.value.format(url=url, error=e))
+            self.entry.fail_with_prefix(NetworkState.NETWORK_ERROR.value.format(url=url, error=e))
         return None
 
     def _request_with_flaresolverr(self, method: str, url: str, **kwargs) -> Response | None:

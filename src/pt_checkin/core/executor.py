@@ -37,7 +37,7 @@ def _determine_signin_type(site_class, entry: SignInEntry) -> str:
             # 检查工作流中是否包含OCR方法
             for work in workflow:
                 if hasattr(work, 'method') and work.method:
-                                        method_name = getattr(work.method, '__name__', str(work.method))
+                    method_name = getattr(work.method, '__name__', str(work.method))
                     if 'ocr' in method_name.lower():
                         return "OCR验证码签到成功"
                     elif 'question' in method_name.lower():
