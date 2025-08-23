@@ -5,7 +5,9 @@ import re
 import threading
 from io import BytesIO
 
-from loguru import logger
+from ..base.log_manager import get_logger
+
+logger = get_logger(__name__)
 
 from ..core.entry import SignInEntry
 

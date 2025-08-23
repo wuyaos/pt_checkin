@@ -163,7 +163,6 @@ fail_regex = '验证码错误|Captcha error|签到失败'
 - **BaseRequest**: 抽象基类，定义请求接口
 - **StandardRequest**: 标准HTTP请求实现
 - **FlareSolverrRequest**: FlareSolverr代理请求实现
-- **BrowserAutomationRequest**: 浏览器自动化请求实现（预留）
 - **RequestFactory**: 工厂类，根据配置自动创建合适的Request实例
 
 ### 配置驱动的请求方式选择
@@ -172,7 +171,7 @@ fail_regex = '验证码错误|Captcha error|签到失败'
 在config.yml中设置全局默认请求方式：
 ```yaml
 # 全局请求方法配置
-request_method: 'auto'  # 可选值: default, flaresolverr, browser, auto
+request_method: 'auto'  # 可选值: default, flaresolverr
 ```
 
 #### 2. 站点特定配置
@@ -204,8 +203,7 @@ response = self.request(entry, 'get', captcha_url, force_default=True)
 
 ### 请求方式说明
 - **default**: 使用标准requests，速度最快，适合无保护的站点
-- **browser**: 使用浏览器自动化，适合复杂交互（暂未实现）
-- **auto**: 系统自动判断，根据站点配置和检测结果选择最佳方式
+- **FlareSolverr**: FlareSolverr
 
 ## 特殊情况处理
 
@@ -230,37 +228,12 @@ def sign_in_build_login_data(self, login: dict, last_content: str) -> dict:
 ```
 
 
-### 3. 需要浏览器自动化的站点
-```python
-def sign_in_build_workflow(self, entry: SignInEntry, config: dict) -> list[Work]:
-    return [
-        Work(
-            url='/attendance.php',
-            method=self._sign_in_with_browser,
-            succeed_regex=['签到成功'],
-            assert_state=(check_final_state, SignState.SUCCEED),
-        ),
-    ]
-
-def _sign_in_with_browser(self, entry: SignInEntry, config: dict,
-                         work: Work, last_content: str) -> Response | None:
-    # 使用浏览器自动化处理复杂交互
-    return self.request(entry, 'get', work.url,
-                       method_type=RequestMethod.BROWSER)
-```
-
 ## 最佳实践
 
-### 1. 优先使用AUTO模式
-除非有特殊需求，建议使用默认的AUTO模式，让系统自动选择最合适的请求方式。
-
-### 2. 性能考虑
+### 1. 性能考虑
 - 标准requests速度最快，适合简单站点
 - FlareSolverr有额外开销，仅在必要时使用
 - 浏览器自动化开销最大，用于最复杂的场景
 
-### 3. 错误处理
+### 2. 错误处理
 不同请求方式的错误处理机制不同，确保在站点实现中正确处理各种异常情况。
-
-### 4. 测试建议
-在开发新站点适配时，建议测试不同的method_type以找到最佳方案。

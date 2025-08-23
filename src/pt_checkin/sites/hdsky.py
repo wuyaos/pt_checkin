@@ -22,11 +22,6 @@ class MainClass(NexusPHP):
     def sign_in_build_entry(cls, entry: SignInEntry, config: dict) -> None:
         """构建签到条目，启用浏览器模拟以绕过验证码"""
         super().sign_in_build_entry(entry, config)
-
-        # 为HDSky启用浏览器模拟
-        entry['site_name'] = 'hdsky'
-        entry['request_method'] = 'browser'  # 强制使用浏览器模拟
-
         # 添加成功标识配置
         entry['success_indicators'] = {
             'logo': 'HDSky',
@@ -47,17 +42,17 @@ class MainClass(NexusPHP):
         }
 
     def sign_in_build_workflow(self, entry: SignInEntry,
-                              config: dict) -> list[Work]:
-        """构建签到工作流 - 使用策略模式处理验证码"""
-        from ..utils.hdsky_strategy import HDSkyCaptchaStrategy
-
-        # HDSky 站点特殊处理：强制使用验证码策略
-        entry['has_captcha'] = True
-        entry['request_method'] = 'browser'
-
-        # 使用 HDSky 专用的验证码策略
-        strategy = HDSkyCaptchaStrategy()
-        return strategy.build_workflow(entry, config)
+                               config: dict) -> list[Work]:
+        """构建签到工作流"""
+        return [
+            Work(
+                url='/index.php',
+                method='get',
+                succeed_regex=['签到成功', 'success', '欢迎回来'],
+                fail_regex='签到失败',
+                is_base_content=True
+            )
+        ]
 
     @property
     def details_selector(self) -> dict:
@@ -76,7 +71,7 @@ class MainClass(NexusPHP):
                     'link': None,
                     'elements': {
                         'bar': ('#info_block > tbody > tr > td > table > '
-                               'tbody > tr > td:nth-child(1) > span'),
+                                'tbody > tr > td:nth-child(1) > span'),
                         'table': None
                     }
                 }

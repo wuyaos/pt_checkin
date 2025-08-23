@@ -5,7 +5,9 @@ from abc import ABC, abstractmethod
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
-from loguru import logger
+from ..base.log_manager import get_logger
+
+logger = get_logger(__name__)
 from requests import Response
 
 from ..base.detail import Detail
@@ -26,8 +28,8 @@ class PrivateTorrent(SignIn, Detail, Message, ABC):
     def request(self, entry: SignInEntry, method: str, url: str,
                config: dict = None, **kwargs):
         """发送HTTP请求，使用新的RequestHandler"""
-        if self._request_handler is None:
-            self._request_handler = RequestHandler(entry, config)
+        # 每次都重新创建RequestHandler，确保使用最新的config
+        self._request_handler = RequestHandler(entry, config)
         return self._request_handler.request(method, url, **kwargs)
 
     @property

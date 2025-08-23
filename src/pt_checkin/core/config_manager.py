@@ -6,40 +6,40 @@ import pathlib
 from typing import Dict, Any
 
 import yaml
-from loguru import logger
+
+from ..base.log_manager import get_logger
+
+logger = get_logger(__name__)
 
 
 class ConfigManager:
     """配置管理器"""
-    
+
     def __init__(self, config_path: str = 'config.yml'):
         self.config_path = pathlib.Path(config_path)
         self.config_dir = self.config_path.parent  # 配置文件所在目录
         self.config: Dict[str, Any] = {}
         self.load_config()
-    
+
     def load_config(self) -> None:
         """加载配置文件"""
         if not self.config_path.exists():
             logger.error(f"配置管理 - 加载失败: 配置文件不存在 ({self.config_path})")
             raise FileNotFoundError(f"配置文件不存在: {self.config_path}")
-        
+
         try:
             with open(self.config_path, 'r', encoding='utf-8') as f:
                 self.config = yaml.safe_load(f) or {}
-            logger.info(f"配置管理 - 加载成功: {self.config_path}")
-            flaresolverr_config = self.config.get('flaresolverr', 'Not found')
-            logger.info(f"配置管理 - FlareSolverr: {flaresolverr_config}")
-            sites_list = list(self.config.get('sites', {}).keys())
-            logger.info(f"配置管理 - 站点配置: {sites_list}")
+            logger.info(f"配置文件加载成功: {self.config_path.absolute()}")
             self._validate_config()
+            self._log_config_summary()
         except yaml.YAMLError as e:
             logger.error(f"配置管理 - 格式错误: {e}")
             raise
         except Exception as e:
             logger.error(f"配置管理 - 加载失败: {e}")
             raise
-    
+
     def _validate_config(self) -> None:
         """验证配置文件"""
         # 设置默认值
@@ -107,7 +107,84 @@ class ConfigManager:
             'api_key': '',
             'secret_key': ''
         }
-    
+
+    def get_logging_config(self) -> Dict[str, Any]:
+        """获取日志配置
+
+        Returns:
+            日志配置字典，如果没有配置则返回None
+        """
+        return self.config.get('logging')
+
+    def _log_config_summary(self) -> None:
+        """记录配置摘要信息"""
+        sites = self.config.get('sites', {})
+        site_count = len(sites)
+        site_names = list(sites.keys())
+
+        # 检查OCR配置状态
+        ocr_config = self.config.get('aipocr', {})
+        ocr_configured = bool(ocr_config.get('app_id') and ocr_config.get('api_key'))
+
+
+
+        # 构建多行配置摘要
+        summary_lines = ["📋 配置摘要:"]
+
+        # 线程数
+        summary_lines.append(f"  - ⚡ 线程数: {self.config.get('max_workers', 1)}")
+
+        # 基础配置
+        basic_configs = []
+        if self.config.get('get_messages', True):
+            basic_configs.append("📧 获取消息(启用)")
+        else:
+            basic_configs.append("📧 获取消息(禁用)")
+
+        if self.config.get('get_details', True):
+            basic_configs.append("📊 获取详情(启用)")
+        else:
+            basic_configs.append("📊 获取详情(禁用)")
+
+        if self.config.get('cookie_backup', True):
+            basic_configs.append("🍪 Cookie备份(启用)")
+        else:
+            basic_configs.append("🍪 Cookie备份(禁用)")
+
+        summary_lines.append(f"  - {' | '.join(basic_configs)}")
+
+        # 站点信息
+        summary_lines.append(f"  - 🌐 站点: {site_count}个 {site_names}")
+
+        # OCR配置状态和可用性测试
+        if ocr_configured:
+            ocr_status = self._test_ocr_availability(ocr_config)
+            summary_lines.append(f"  - 🔍 OCR已配置{ocr_status}")
+        else:
+            summary_lines.append("  - ❌ OCR未配置")
+
+        # 输出多行配置摘要
+        logger.info("\n".join(summary_lines))
+
+    def _test_ocr_availability(self, ocr_config: Dict[str, str]) -> str:
+        """测试OCR服务可用性"""
+        try:
+            # 简单测试OCR配置的有效性
+            app_id = ocr_config.get('app_id', '')
+            api_key = ocr_config.get('api_key', '')
+            secret_key = ocr_config.get('secret_key', '')
+
+            if not all([app_id, api_key, secret_key]):
+                return "❌"
+
+            # 这里可以添加更详细的OCR服务连接测试
+            # 为了避免启动时的网络延迟，暂时只检查配置完整性
+            return "✅"
+
+        except Exception as e:
+            logger.debug(f"OCR可用性测试异常: {e}")
+            return "❌"
+
     def prepare_config_for_executor(self) -> Dict[str, Any]:
         """为执行器准备配置"""
         return {
@@ -118,7 +195,7 @@ class ConfigManager:
             'cookie_backup': self.get('cookie_backup', True),
             'aipocr': self.get_baidu_ocr_config(),
             'flaresolverr': self.config.get('flaresolverr', {}),
-            'browser_automation': self.config.get('browser_automation', {}),  # 添加浏览器自动化配置
+
             'config_dir': str(self.config_dir),  # 配置文件目录路径
             'sites': self.get_sites()
         }

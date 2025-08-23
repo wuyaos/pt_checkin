@@ -10,7 +10,9 @@ import numpy as np
 import requests
 from PIL import Image
 from ..utils.soup import get_soup
-from loguru import logger
+from ..base.log_manager import get_logger
+
+logger = get_logger(__name__)
 
 from ..core.entry import SignInEntry
 from ..base.request import check_network_state, NetworkState

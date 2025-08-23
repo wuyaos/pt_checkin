@@ -2,7 +2,9 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
-from loguru import logger
+from ..base.log_manager import get_logger
+
+logger = get_logger(__name__)
 
 from .config_manager import ConfigManager
 from .entry import SignInEntry
@@ -46,7 +48,8 @@ class TaskScheduler:
                 logger.warning("任务调度 - 条目创建: 未创建任何签到条目")
                 return
 
-            logger.info(f"任务调度 - 条目创建: 成功创建 {len(entries)} 个签到条目")
+            site_names = [entry['site_name'] for entry in entries]
+            logger.info(f"📝 任务调度 - 条目创建: 成功创建 {len(entries)} 个签到条目 {site_names}")
 
             # 过滤今日条目和已签到条目
             date_now = str(datetime.now().date())
@@ -123,7 +126,13 @@ class TaskScheduler:
                     logger.info("任务调度 - 执行结果: 没有需要签到的条目")
                 return
 
-            logger.info(f"任务调度 - 开始执行: {len(valid_entries)} 个站点签到")
+            valid_site_names = [entry['site_name'] for entry in valid_entries]
+            if len(valid_entries) == 1:
+                logger.info(f"📋 任务调度 - 开始执行站点 {valid_site_names[0]} 签到")
+            else:
+                logger.info(f"📋 任务调度 - 开始执行 {len(valid_entries)} 个站点签到 {valid_site_names}")
+
+
 
             # 执行签到（多线程执行）
             max_workers = self.config_manager.get_max_workers()
@@ -134,9 +143,14 @@ class TaskScheduler:
 
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = []
+                # 提交所有任务到线程池
                 for entry in valid_entries:
-                    # 记录签到开始
-                    logger.info(f"{entry['site_name']} - 签到开始")
+                    site_name = entry['site_name']
+                    # 多线程执行时显示任务提交状态
+                    if len(valid_entries) > 1:
+                        logger.info(f"🚀 {site_name} - 任务已提交，等待执行")
+                    else:
+                        logger.info(f"🚀 {site_name} - 开始执行签到")
                     future = executor.submit(self._sign_in_with_error_handling, entry, config)
                     futures.append((entry, future))
 
@@ -316,38 +330,78 @@ class TaskScheduler:
             # 清理旧记录
             self.status_manager.cleanup_old_records()
 
-            # 关闭浏览器资源
-            self._cleanup_browser_resources()
+
 
         except Exception as e:
             logger.exception(f"任务调度 - 执行异常: {e}")
-            # 即使出现异常也要清理浏览器资源
-            self._cleanup_browser_resources()
-
-    def _cleanup_browser_resources(self):
-        """清理浏览器资源 - 关闭所有剩余的tab和主浏览器"""
-        try:
-            from ..utils.browser_manager import get_browser_manager
-            browser_manager = get_browser_manager()
-            if browser_manager:
-                # 关闭所有剩余的tab
-                browser_manager.close_all_tabs()
-                # 完全关闭浏览器
-                browser_manager.close_browser()
-                logger.info("所有浏览器资源已清理完成")
-        except Exception as e:
-            logger.warning(f"清理浏览器资源失败: {e}")
 
     def _sign_in_with_error_handling(self, entry: SignInEntry, config: dict) -> None:
         """带错误处理的签到"""
+        site_name = entry.get('site_name', 'unknown')
         try:
+            # 记录实际开始执行
+            logger.info(f"⚡ {site_name} - 开始执行签到任务")
+
             from .executor import sign_in
             sign_in(entry, config)
+
+            # 记录执行完成
+            if not entry.failed:
+                logger.info(f"✅ {site_name} - 签到任务完成")
+            else:
+                # 根据错误类型生成详细的问题描述
+                error_type = getattr(entry, '_error_type', 'general')
+                problem_description = self._get_problem_description(entry.reason, error_type)
+                logger.warning(f"⚠️ {site_name} - {problem_description}")
+
         except Exception as e:
             entry.fail(f"签到异常: {e}")
-            logger.exception(f"{entry['site_name']} - 签到异常: {e}")
+            logger.error(f"❌ {site_name} - 签到任务异常: {e}")
 
-    def run_once(self, force_options: dict = None) -> None:
+    def _get_problem_description(self, reason: str, error_type: str) -> str:
+        """根据错误类型和原因生成用户友好的问题描述"""
+
+        # 错误类型映射
+        error_type_descriptions = {
+            'connectivity': '连接问题',
+            'authentication': '认证问题',
+            'general': '签到问题'
+        }
+
+        # 常见错误关键词映射
+        error_keywords = {
+            '站点维护中': '站点正在维护，暂时无法签到',
+            '站点连接失败': '无法连接到站点服务器',
+            '需要人工验证Turnstile': '检测到Turnstile验证，需要手动完成',
+            '无法获取签到页面': '签到页面访问失败',
+            '页面没有验证码表单': '签到页面结构异常，缺少验证码表单',
+            '验证码识别失败': '验证码识别失败，可能需要人工处理',
+            '无法获取验证码图片': '验证码图片下载失败',
+            'PIL库未安装': '系统缺少图像处理库',
+            '验证码处理失败': '验证码处理过程出现异常'
+        }
+
+        # 提取错误关键信息
+        for keyword, description in error_keywords.items():
+            if keyword in reason:
+                error_category = error_type_descriptions.get(error_type, '未知问题')
+                return f"{error_category}: {description}"
+
+        # 如果没有匹配的关键词，使用通用描述
+        error_category = error_type_descriptions.get(error_type, '未知问题')
+        return f"{error_category}: {reason}"
+
+    def run_once(self, force_options: dict = None, debug_mode: bool = False, **kwargs) -> None:
         """立即执行一次签到任务"""
         logger.info("任务调度 - 立即执行: 签到任务")
+
+        # 处理debug_mode参数
+        if force_options is None:
+            force_options = {}
+        if debug_mode:
+            force_options['debug_mode'] = True
+
+        # 合并其他kwargs到force_options
+        force_options.update(kwargs)
+
         self.run_sign_in_task(force_options)

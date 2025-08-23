@@ -3,8 +3,11 @@
 PT签到工具 - CLI
 """
 import click
-from loguru import logger
+from ..base.log_manager import get_logger
+
+logger = get_logger(__name__)
 from .core.config_manager import ConfigManager
+from .base.log_manager import init_logging
 
 
 @click.group()
@@ -13,66 +16,24 @@ from .core.config_manager import ConfigManager
 @click.pass_context
 def cli(ctx, config: str, verbose: bool):
     """PT站点自动签到工具"""
-    # 设置日志级别和颜色
-    logger.remove()  # 移除默认处理器
-
-    # 定义日志格式和颜色
-    log_format = (
-        "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
-        "<level>{level: <8}</level> | "
-        "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
-        "<level>{message}</level>"
-    )
-
-    # 控制台输出
-    if verbose:
-        logger.add(
-            lambda msg: print(msg, end=''),
-            level="DEBUG",
-            format=log_format,
-            colorize=True
-        )
-    else:
-        logger.add(
-            lambda msg: print(msg, end=''),
-            level="INFO",
-            format=log_format,
-            colorize=True
-        )
-
-    # 文件输出将在后续初始化时配置
-
     # 初始化配置管理器
     try:
         config_manager = ConfigManager(config)
         ctx.ensure_object(dict)
         ctx.obj['config_manager'] = config_manager
 
-        # 配置文件日志输出
-        try:
-            log_file_path = config_manager.config_dir / "pt_checkin.log"
-
-            # 添加文件日志处理器
-            file_format = (
-                "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | "
-                "{name}:{function}:{line} - {message}"
-            )
-            logger.add(
-                str(log_file_path),
-                level="DEBUG",
-                format=file_format,
-                rotation="10 MB",  # 日志文件大小超过10MB时轮转
-                retention="30 days",  # 保留30天的日志
-                compression="zip",  # 压缩旧日志文件
-                encoding="utf-8"
-            )
-            logger.info(f"日志文件输出: {log_file_path.name}")
-        except Exception as log_e:
-            logger.warning(f"日志文件配置失败: {log_e}")
+        # 使用新的日志管理器初始化日志系统
+        logging_config = config_manager.get_logging_config()
+        init_logging(
+            config=logging_config,
+            config_dir=config_manager.config_dir,
+            verbose=verbose
+        )
 
         logger.info("程序初始化 - 完成")
     except Exception as e:
-        logger.error(f"程序初始化 - 失败: {e}")
+        # 如果日志系统未初始化，使用基本的错误输出
+        print(f"程序初始化失败: {e}")
         ctx.exit(1)
 
 
@@ -82,25 +43,27 @@ def cli(ctx, config: str, verbose: bool):
 @click.option('--site', '-s', help='仅签到指定站点')
 @click.option('--force', is_flag=True, help='强制重新签到')
 @click.option('--dry-run', is_flag=True, help='模拟运行')
+@click.option('--debug', is_flag=True, help='调试模式')
 @click.pass_context
-def run(ctx, site: str, force: bool, dry_run: bool):
+def run(ctx, site: str, force: bool, dry_run: bool, debug: bool):
     """执行签到任务"""
     config_manager = ctx.obj['config_manager']
-    
     if dry_run:
         print("🔍 模拟运行模式 - 不会实际执行签到")
-    
     # 创建调度器并执行
     from .core.scheduler import TaskScheduler
     scheduler = TaskScheduler(config_manager)
-    
+
     # 设置强制选项
     force_options = {}
     if force:
         force_options['force_all'] = True
     if site:
         force_options['force_sites'] = [site]
-    
+    if debug:
+        force_options['debug_mode'] = True
+        logger.info("🐛 调试模式已启用")
+
     try:
         if dry_run:
             print("✅ 模拟运行完成")
@@ -118,7 +81,6 @@ def run(ctx, site: str, force: bool, dry_run: bool):
 def test(ctx):
     """测试配置文件"""
     config_manager = ctx.obj['config_manager']
-    
     print("🔧 配置文件测试")
     print("=" * 50)
 
@@ -150,7 +112,6 @@ def test(ctx):
 def test_site(ctx, site_name: str, debug: bool):
     """测试单个站点"""
     config_manager = ctx.obj['config_manager']
-    
     if debug:
         print("🐛 调试模式已启用")
 
@@ -165,15 +126,14 @@ def test_site(ctx, site_name: str, debug: bool):
     if debug:
         site_config = sites[site_name]
         print(f"🔧 站点配置: {site_config}")
-    
     # 创建调度器并执行单站点测试
     from .core.scheduler import TaskScheduler
     scheduler = TaskScheduler(config_manager)
-    
+
     # 临时修改配置只包含指定站点
     original_sites = config_manager.config['sites']
     config_manager.config['sites'] = {site_name: sites[site_name]}
-    
+
     try:
         scheduler.run_once()
     finally:
@@ -191,9 +151,7 @@ def test_site(ctx, site_name: str, debug: bool):
 def status(ctx, clear: bool, clear_site: str, show_failed: bool):
     """查看和管理签到状态"""
     from .core.signin_status import SignInStatusManager
-    
     status_manager = SignInStatusManager()
-    
     if clear:
         status_manager.clear_today_status()
         print("🗑️  已清除今日所有签到状态")
@@ -280,7 +238,6 @@ def get_notification(ctx, format: str, title_only: bool, detailed: bool):
 def debug(ctx, site: str, show_config: bool):
     """调试模式"""
     config_manager = ctx.obj['config_manager']
-
     logger.info("=== 调试信息 ===")
 
     if show_config:
@@ -331,28 +288,17 @@ def run_signin(
     Returns:
         dict: 包含执行结果的字典
     """
-    # 设置日志级别为INFO，不输出DEBUG信息
-    logger.remove()
-    log_format = (
-        "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
-        "<level>{level: <8}</level> | "
-        "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
-        "<level>{message}</level>"
-    )
-
-    # 控制台输出
-    logger.add(
-        lambda msg: print(msg, end=''),
-        level="INFO",
-        format=log_format,
-        colorize=True
-    )
-
-    # 文件日志将由主程序配置
-
     try:
         # 初始化配置管理器
         config_manager = ConfigManager(config_file)
+
+        # 使用新的日志管理器初始化日志系统（仅INFO级别）
+        logging_config = config_manager.get_logging_config()
+        init_logging(
+            config=logging_config,
+            config_dir=config_manager.config_dir,
+            verbose=False  # 便捷函数默认不启用详细日志
+        )
 
         # 创建调度器
         from .core.scheduler import TaskScheduler

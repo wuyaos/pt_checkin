@@ -7,7 +7,9 @@ import pathlib
 from datetime import datetime
 from typing import Dict, Any, Optional
 
-from loguru import logger
+from ..base.log_manager import get_logger
+
+logger = get_logger(__name__)
 
 
 class SignInStatusManager:

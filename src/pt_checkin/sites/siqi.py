@@ -44,7 +44,7 @@ class MainClass(Attendance):
                            work: Work, last_content: str) -> Response | None:
         """处理验证码签到"""
         # 获取签到页面
-        response = self.request(entry, 'get', work.url)
+        response = self.request(entry, 'get', work.url, config)
         if not response:
             entry.fail_with_prefix('无法获取签到页面')
             return None
@@ -112,4 +112,4 @@ class MainClass(Attendance):
             'imagestring': captcha_text
         }
 
-        return self.request(entry, 'post', work.url, data=data)
+        return self.request(entry, 'post', work.url, config, data=data)

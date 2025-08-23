@@ -2,31 +2,16 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from enum import Enum
 
-from loguru import logger
+from ..base.log_manager import get_logger
+
+logger = get_logger(__name__)
 from requests import Response
 
 from ..core.entry import SignInEntry
-from .request import NetworkState, check_network_state
+from .request import check_network_state
 from .work import Work
-
-
-class SignState(Enum):
-    NO_SIGN_IN = 'No sign in'
-    SUCCEED = 'Succeed'
-    WRONG_ANSWER = 'Wrong answer'
-    SIGN_IN_FAILED = 'Sign in failed, {}'
-    UNKNOWN = 'Unknown, url: {}'
-
-
-class NetworkErrorReason(Enum):
-    DDOS_PROTECTION_BY_CLOUDFLARE = 'DDoS protection by .+?Cloudflare'
-    SERVER_LOAD_TOO_HIGH = r'<h3 align=center>(服务器负载过|伺服器負載過)高，正在重(试|試)，(请|請)稍(后|後)\.\.\.</h3>'
-    CONNECTION_TIMED_OUT = r'<h2 class="text-gray-600 leading-1\.3 text-3xl font-light">Connection timed out</h2>'
-    THE_WEB_SERVER_REPORTED_A_BAD_GATEWAY_ERROR = r'<p>The web server reported a bad gateway error\.</p>'
-    WEB_SERVER_IS_DOWN = '站点关闭维护中，请稍后再访问...谢谢|站點關閉維護中，請稍後再訪問...謝謝|Web server is down'
-    INCORRECT_CSRF_TOKEN = 'Incorrect CSRF token'
+from ..utils.common_utils import NetworkState, SignState
 
 
 def check_state(entry: SignInEntry,
@@ -63,10 +48,20 @@ def check_sign_in_state(entry: SignInEntry,
             return SignState.SUCCEED
     if (fail_regex := work.fail_regex) and re.search(fail_regex, content):
         return SignState.WRONG_ANSWER
-    for reason in NetworkErrorReason:
-        if re.search(reason.value, content):
+    # 检查网络错误模式
+    network_error_patterns = [
+        NetworkState.DDOS_PROTECTION_BY_CLOUDFLARE,
+        NetworkState.SERVER_LOAD_TOO_HIGH,
+        NetworkState.CONNECTION_TIMED_OUT,
+        NetworkState.THE_WEB_SERVER_REPORTED_A_BAD_GATEWAY_ERROR,
+        NetworkState.WEB_SERVER_IS_DOWN,
+        NetworkState.INCORRECT_CSRF_TOKEN
+    ]
+
+    for error_pattern in network_error_patterns:
+        if re.search(error_pattern.value, content):
             entry.fail_with_prefix(
-                NetworkState.NETWORK_ERROR.value.format(url=work.url, error=reason.name.title()))
+                NetworkState.NETWORK_ERROR.value.format(url=work.url, error=error_pattern.name.title()))
             return NetworkState.NETWORK_ERROR
     if (assert_state := work.assert_state) and assert_state[1] != SignState.NO_SIGN_IN:
         logger.warning(f'no sign in, regex: {succeed_regex}, content: {content}')

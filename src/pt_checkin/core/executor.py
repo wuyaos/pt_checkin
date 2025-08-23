@@ -12,9 +12,10 @@ import threading
 from datetime import datetime
 from typing import List
 
-from loguru import logger
-
+from ..base.log_manager import get_logger
 from .entry import SignInEntry
+
+logger = get_logger(__name__)
 
 lock = threading.Semaphore(1)
 
@@ -36,7 +37,7 @@ def _determine_signin_type(site_class, entry: SignInEntry) -> str:
             # 检查工作流中是否包含OCR方法
             for work in workflow:
                 if hasattr(work, 'method') and work.method:
-                    method_name = getattr(work.method, '__name__', str(work.method))
+                                        method_name = getattr(work.method, '__name__', str(work.method))
                     if 'ocr' in method_name.lower():
                         return "OCR验证码签到成功"
                     elif 'question' in method_name.lower():
@@ -79,7 +80,7 @@ def build_sign_in_schema() -> dict:
     return sites_schema
 
 
-def build_sign_in_entry(entry: SignInEntry, config: dict) -> None:
+def build_sign_in_entry(entry: SignInEntry, site_config: dict) -> None:
     """构建签到条目"""
     try:
         # 导入基类
@@ -87,7 +88,7 @@ def build_sign_in_entry(entry: SignInEntry, config: dict) -> None:
 
         site_class = get_site_class(entry['class_name'])
         if issubclass(site_class, SignIn):
-            site_class.sign_in_build_entry(entry, config)
+            site_class.sign_in_build_entry(entry, site_config)
     except AttributeError as e:
         logger.error(f"站点模块 - 加载失败: {entry['site_name']} ({e})")
         raise Exception(f"site: {entry['site_name']}, error: {e}")
@@ -106,16 +107,20 @@ def save_cookie(entry: SignInEntry) -> None:
         cookies_backup_file = pathlib.Path(config_dir).joinpath(file_name)
         if cookies_backup_file.is_file():
             try:
-                cookies_backup_json = json.loads(cookies_backup_file.read_text(encoding='utf-8'))
+                backup_text = cookies_backup_file.read_text(encoding='utf-8')
+                cookies_backup_json = json.loads(backup_text)
             except json.JSONDecodeError:
                 cookies_backup_json = {}
         else:
             cookies_backup_json = {}
-        cookies_backup_json[site_name] = {'date': str(datetime.now().date()), 'cookie': session_cookie}
-        cookies_backup_file.write_text(json.dumps(cookies_backup_json, indent=4), encoding='utf-8')
+        cookies_backup_json[site_name] = {
+            'date': str(datetime.now().date()), 'cookie': session_cookie
+        }
+        backup_text = json.dumps(cookies_backup_json, indent=4)
+        cookies_backup_file.write_text(backup_text, encoding='utf-8')
 
 
-def sign_in(entry: SignInEntry, config: dict) -> SignInEntry:
+def sign_in(entry: SignInEntry, site_config: dict) -> SignInEntry:
     """执行签到"""
     try:
         # 导入基类
@@ -137,7 +142,7 @@ def sign_in(entry: SignInEntry, config: dict) -> SignInEntry:
     # 1. 执行签到 - 这是核心功能，失败则整个任务失败
     if issubclass(site_class, SignIn):
         entry['prefix'] = 'Sign_in'
-        site_object.sign_in(entry, config)
+        site_object.sign_in(entry, site_config)
         if entry.failed:
             return entry
         if entry['result']:
@@ -145,20 +150,23 @@ def sign_in(entry: SignInEntry, config: dict) -> SignInEntry:
 
     # 2. 获取消息 - 独立处理，失败不影响签到成功状态
     entry['messages_status'] = 'success'
-    if config.get('get_messages', True) and issubclass(site_class, Message):
+    get_messages = site_config.get('get_messages', True)
+    if get_messages and issubclass(site_class, Message):
         entry['prefix'] = 'Messages'
         try:
             # 临时保存失败状态
             original_failed = entry.failed
             original_reason = entry.reason
 
-            site_object.get_messages(entry, config)
+            site_object.get_messages(entry, site_config)
 
             if entry.failed:
                 # 消息获取失败，记录状态但不影响整体签到结果
                 entry['messages_status'] = 'failed'
                 entry['messages_error'] = entry.reason
-                logger.warning(f"{entry['site_name']} - 消息获取失败: {entry.reason}")
+                logger.warning(
+                    f"{entry['site_name']} - 消息获取失败: {entry.reason}"
+                )
 
                 # 恢复签到成功状态
                 entry.failed = original_failed
@@ -173,20 +181,23 @@ def sign_in(entry: SignInEntry, config: dict) -> SignInEntry:
 
     # 3. 获取详情 - 独立处理，失败不影响签到成功状态
     entry['details_status'] = 'success'
-    if config.get('get_details', True) and issubclass(site_class, Detail):
+    get_details = site_config.get('get_details', True)
+    if get_details and issubclass(site_class, Detail):
         entry['prefix'] = 'Details'
         try:
             # 临时保存失败状态
             original_failed = entry.failed
             original_reason = entry.reason
 
-            site_object.get_details(entry, config)
+            site_object.get_details(entry, site_config)
 
             if entry.failed:
                 # 详情获取失败，记录状态但不影响整体签到结果
                 entry['details_status'] = 'failed'
                 entry['details_error'] = entry.reason
-                logger.warning(f"{entry['site_name']} - 详情获取失败: {entry.reason}")
+                logger.warning(
+                    f"{entry['site_name']} - 详情获取失败: {entry.reason}"
+                )
 
                 # 恢复签到成功状态
                 entry.failed = original_failed
@@ -200,7 +211,7 @@ def sign_in(entry: SignInEntry, config: dict) -> SignInEntry:
             logger.warning(f"{entry['site_name']} - 详情获取异常: {e}")
 
     # 4. 备份Cookie
-    if config.get('cookie_backup', True):
+    if site_config.get('cookie_backup', True):
         if not entry.failed:  # 只有签到成功才备份Cookie
             save_cookie(entry)
 
@@ -227,7 +238,9 @@ def get_site_class(class_name: str) -> type:
         raise
 
 
-def create_sign_in_entries(sites_config: dict, config: dict) -> List[SignInEntry]:
+def create_sign_in_entries(
+    sites_config: dict, config: dict
+) -> List[SignInEntry]:
     """创建签到条目列表"""
     entries: List[SignInEntry] = []
 
@@ -249,7 +262,7 @@ def create_sign_in_entries(sites_config: dict, config: dict) -> List[SignInEntry
             entry['details'] = ''
 
             try:
-                build_sign_in_entry(entry, config)
+                build_sign_in_entry(entry, sub_site_config)
                 entries.append(entry)
             except Exception as e:
                 logger.error(f"条目构建 - 失败: {site_name} ({e})")

@@ -23,7 +23,9 @@ except ImportError:
     fuzz = None
     process = None
 
-from loguru import logger
+from ..base.log_manager import get_logger
+
+logger = get_logger(__name__)
 
 from ..schema.nexusphp import NexusPHP
 

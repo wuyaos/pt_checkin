@@ -29,11 +29,6 @@ class MainClass(NexusPHP):
     def sign_in_build_entry(cls, entry: SignInEntry, config: dict) -> None:
         """构建签到条目，启用浏览器模拟以绕过Cloudflare"""
         super().sign_in_build_entry(entry, config)
-
-        # 为BTSchool启用浏览器模拟
-        entry['site_name'] = 'btschool'
-        entry['request_method'] = 'browser'  # 强制使用浏览器模拟
-
         # 添加成功标识配置
         entry['success_indicators'] = {
             'logo': 'class="logo">BTSCHOOL</div>',
@@ -65,7 +60,7 @@ class MainClass(NexusPHP):
         return selector
 
     def sign_in_by_location(self, entry: SignInEntry, config: dict, work: Work, last_content: str) -> Response | None:
-        response = self.request(entry, 'get', work.url)
+        response = self.request(entry, 'get', work.url, config)
         reload__net_state = check_network_state(entry, work.url, response)
         if reload__net_state != NetworkState.SUCCEED:
             return None

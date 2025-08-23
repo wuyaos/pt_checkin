@@ -9,7 +9,9 @@ from time import sleep
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
-from loguru import logger
+from ..base.log_manager import get_logger
+
+logger = get_logger(__name__)
 
 from .private_torrent import PrivateTorrent
 from ..core.entry import SignInEntry

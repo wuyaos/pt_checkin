@@ -14,16 +14,14 @@ aipocr:
   api_key    : ''             # 百度OCR API Key
   secret_key : ''
 
-# 浏览器自动化配置
-browser_automation:
-  enabled: true                       # 是否启用浏览器自动化
-  headless: false                      # 是否使用无头模式
-  timeout: 30                         # 操作超时时间（秒）
-  browser_path: ''                    # 自定义浏览器路径
-  user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36'
-  browser_arguments:                  # 额外的浏览器启动参数
-    # - '--disable-web-security'
-    - '--disable-features=VizDisplayCompositor'
+# FlareSolverr配置 (可选，用于绕过Cloudflare保护)
+flaresolverr:
+  server_url: 'http://localhost:8191'  # FlareSolverr服务器地址
+  timeout: 60                          # 请求超时时间（秒）
+  enabled_sites:                       # 启用FlareSolverr的站点列表（如果该键值为"*"，则表明全部启用）
+    - btschool                         # 示例：为btschool站点启用
+    - hdsky                            # HDSky现在也使用FlareSolverr
+    # - "*"                            # 取消注释此行可为所有站点启用FlareSolverr
 
 # 站点配置
 sites:
@@ -31,16 +29,15 @@ sites:
   # site_name: 'your_cookie_string_here'
 
   # 示例站点配置 - 详细模式
-  # site_name:
+  # hdsky:
   #   cookie: 'your_cookie_string_here'
-  #   username: 'your_username'
-  #   comment: 'daily_sign_in'
-  #   user_agent: 'custom_user_agent'  # 可选，覆盖全局设置
+  #   join_date: 'xxxx-xx-xx'
 
-  # 实际配置示例 (请替换为你的真实信息)
-  # dmhy:
-  #   cookie: 'your_dmhy_cookie_here'
-  #   username: 'your_username'
-  #   comment: '每日签到'
+# 请求方式说明：
+# - default: 标准HTTP请求（最快，适用于大多数站点）
+# - flaresolverr: 通过FlareSolverr绕过Cloudflare保护
 
-  # byr: 'your_byr_cookie_here'
+# 优先级：
+# 1. 站点配置中的request_method
+# 2. 全局FlareSolverr配置（enabled_sites列表或"*"）
+# 3. 默认使用标准请求
