@@ -2,20 +2,20 @@ from __future__ import annotations
 
 from typing import Final
 
-from ..core.entry import SignInEntry
 from ..base.work import Work
+from ..core.entry import SignInEntry
 from ..schema.nexusphp import NexusPHP
 from ..utils.net_utils import get_module_name
 
 
 class MainClass(NexusPHP):
-    URL: Final = 'https://hdsky.me/'
-    TORRENT_PAGE_URL: Final = '/details.php?id={torrent_id}&hit=1'
+    URL: Final = "https://hdsky.me/"
+    TORRENT_PAGE_URL: Final = "/details.php?id={torrent_id}&hit=1"
     DOWNLOAD_URL_REGEX: Final = '/download\\.php\\?id=\\d+&passkey=.*?(?=")'
     USER_CLASSES: Final = {
-        'downloaded': [8796093022208, 10995116277760],
-        'share_ratio': [5, 5.5],
-        'days': [315, 455]
+        "downloaded": [8796093022208, 10995116277760],
+        "share_ratio": [5, 5.5],
+        "days": [315, 455],
     }
 
     @classmethod
@@ -23,34 +23,33 @@ class MainClass(NexusPHP):
         """构建签到条目，启用浏览器模拟以绕过验证码"""
         super().sign_in_build_entry(entry, config)
         # 添加成功标识配置
-        entry['success_indicators'] = {
-            'logo': 'HDSky',
-            'keywords': ['种子', 'torrent', '用户', '下载', '签到']
+        entry["success_indicators"] = {
+            "logo": "HDSky",
+            "keywords": ["种子", "torrent", "用户", "下载", "签到"],
         }
 
     @classmethod
     def sign_in_build_schema(cls) -> dict:
         return {
             get_module_name(cls): {
-                'type': 'object',
-                'properties': {
-                    'cookie': {'type': 'string'},
-                    'join_date': {'type': 'string', 'format': 'date'}
+                "type": "object",
+                "properties": {
+                    "cookie": {"type": "string"},
+                    "join_date": {"type": "string", "format": "date"},
                 },
-                'additionalProperties': False
+                "additionalProperties": False,
             }
         }
 
-    def sign_in_build_workflow(self, entry: SignInEntry,
-                               config: dict) -> list[Work]:
+    def sign_in_build_workflow(self, entry: SignInEntry, config: dict) -> list[Work]:
         """构建签到工作流"""
         return [
             Work(
-                url='/index.php',
-                method='get',
-                succeed_regex=['签到成功', 'success', '欢迎回来'],
-                fail_regex='签到失败',
-                is_base_content=True
+                url="/index.php",
+                method="get",
+                succeed_regex=["签到成功", "success", "欢迎回来"],
+                fail_regex="签到失败",
+                is_base_content=True,
             )
         ]
 
@@ -65,21 +64,20 @@ class MainClass(NexusPHP):
 
         # 配置 HDSky 特定的选择器
         hdsky_config = {
-            'user_id': None,
-            'detail_sources': {
-                'default': {
-                    'link': None,
-                    'elements': {
-                        'bar': ('#info_block > tbody > tr > td > table > '
-                                'tbody > tr > td:nth-child(1) > span'),
-                        'table': None
-                    }
+            "user_id": None,
+            "detail_sources": {
+                "default": {
+                    "link": None,
+                    "elements": {
+                        "bar": (
+                            "#info_block > tbody > tr > td > table > "
+                            "tbody > tr > td:nth-child(1) > span"
+                        ),
+                        "table": None,
+                    },
                 }
             },
-            'details': {
-                'join_date': None,
-                'hr': None
-            }
+            "details": {"join_date": None, "hr": None},
         }
 
         return builder.with_config(hdsky_config).build()

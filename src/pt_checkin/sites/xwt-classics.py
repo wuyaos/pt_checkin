@@ -4,4 +4,4 @@ from ..schema.xwt import XWT
 
 
 class MainClass(XWT):
-    URL: Final = 'https://xwt-classics.net/'
+    URL: Final = "https://xwt-classics.net/"

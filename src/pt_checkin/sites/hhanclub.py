@@ -1,59 +1,48 @@
 from typing import Final
 
-
 from ..schema.nexusphp import VisitHR
-from ..utils.value_handler import size, handle_infinite
+from ..utils.value_handler import handle_infinite, size
 
 
 class MainClass(VisitHR):
-    URL: Final = 'https://hhanclub.top/'
+    URL: Final = "https://hhanclub.top/"
     USER_CLASSES: Final = {
-        'downloaded': [size(750, 'GiB'), size(3, 'TiB')],
-        'points': [900000, 1500000],
-        'share_ratio': [3.05, 4.55],
-        'days': [280, 700]
+        "downloaded": [size(750, "GiB"), size(3, "TiB")],
+        "points": [900000, 1500000],
+        "share_ratio": [3.05, 4.55],
+        "days": [280, 700],
     }
 
     @property
     def details_selector(self) -> dict:
         return {
-            'user_id': r'userdetails\.php\?id=(\d+)',
-            'detail_sources': {
-                'default': {
-                    'link': '/userdetails.php?id={}',
-                    'elements': {
-                        'panel': '#user-info-panel',
-                        'table': '#mainContent'
-                    }
+            "user_id": r"userdetails\.php\?id=(\d+)",
+            "detail_sources": {
+                "default": {
+                    "link": "/userdetails.php?id={}",
+                    "elements": {"panel": "#user-info-panel", "table": "#mainContent"},
                 }
             },
-            'details': {
-                'uploaded': {
-                    'regex': r'上传量.+?([\d.]+ ?[ZEPTGMK]?i?B)'
+            "details": {
+                "uploaded": {"regex": r"上传量.+?([\d.]+ ?[ZEPTGMK]?i?B)"},
+                "downloaded": {"regex": r"下载量.+?([\d.]+ ?[ZEPTGMK]?i?B)"},
+                "share_ratio": {
+                    "regex": r"分享率.*?(---|∞|Inf\.|无限|無限|[\d,.]+)",
+                    "handle": handle_infinite,
                 },
-                'downloaded': {
-                    'regex': r'下载量.+?([\d.]+ ?[ZEPTGMK]?i?B)'
+                "points": {"regex": r"做种积分：.*?([\d,.]+)"},
+                "join_date": {
+                    "regex": r"加入日期.*?(\d{4}-\d{2}-\d{2})",
                 },
-                'share_ratio': {
-                    'regex': r'分享率.*?(---|∞|Inf\.|无限|無限|[\d,.]+)',
-                    'handle': handle_infinite
+                "seeding": {"regex": (r"勋章.*?([\d,.]+).*?([\d,.]+)", 2)},
+                "leeching": {
+                    "regex": (
+                        r"勋章.*?([\d,.]+).*?([\d,.]+).*?([\d,.]+).*?([\d,.]+)",
+                        4,
+                    )
                 },
-                'points': {
-                    'regex': r'做种积分：.*?([\d,.]+)'
-                },
-                'join_date': {
-                    'regex': r'加入日期.*?(\d{4}-\d{2}-\d{2})',
-                },
-                'seeding': {
-                    'regex': (r'勋章.*?([\d,.]+).*?([\d,.]+)', 2)
-                },
-                'leeching': {
-                    'regex': (r'勋章.*?([\d,.]+).*?([\d,.]+).*?([\d,.]+).*?([\d,.]+)', 4)
-                },
-                'hr': {
-                    'regex': r'H&R.*?(\d+)'
-                }
-            }
+                "hr": {"regex": r"H&R.*?(\d+)"},
+            },
         }
 
     # def sign_in_build_workflow(self, entry: SignInEntry, config: dict) -> list[Work]:

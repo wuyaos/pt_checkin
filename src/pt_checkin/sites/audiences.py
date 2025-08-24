@@ -8,29 +8,32 @@ from ..utils import net_utils
 
 
 class MainClass(AttendanceHR):
-    URL: Final = 'https://audiences.me/'
+    URL: Final = "https://audiences.me/"
     USER_CLASSES: Final = {
-        'downloaded': [2199023255552, 8796093022208],
-        'share_ratio': [4.5, 5],
-        'points': [1200000, 1800000],
-        'days': [560, 784]
+        "downloaded": [2199023255552, 8796093022208],
+        "share_ratio": [4.5, 5],
+        "points": [1200000, 1800000],
+        "days": [560, 784],
     }
 
     @property
     def details_selector(self) -> dict:
         selector = super().details_selector
-        net_utils.dict_merge(selector, {
-            'detail_sources': {
-                'default': {
-                    'elements': {
-                        'bar': '#info_block > tbody > tr > td > table > tbody > tr > td:nth-child(1)',
+        net_utils.dict_merge(
+            selector,
+            {
+                "detail_sources": {
+                    "default": {
+                        "elements": {
+                            "bar": "#info_block > tbody > tr > td > table > tbody > tr > td:nth-child(1)",
+                        }
                     }
-                }
+                },
+                "details": {
+                    "points": {
+                        "regex": "做种积分([\\d.,]+)",
+                    }
+                },
             },
-            'details': {
-                'points': {
-                    'regex': '做种积分([\\d.,]+)',
-                }
-            }
-        })
+        )
         return selector

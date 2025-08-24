@@ -7,10 +7,11 @@ from __future__ import annotations
 
 import json
 import time
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 from urllib.parse import urljoin
 
 import requests
+
 from ..base.log_manager import get_logger
 
 logger = get_logger(__name__)
@@ -29,7 +30,7 @@ class FlareSolverrClient:
             server_url: FlareSolverr服务器地址，如 http://localhost:8191
             timeout: 请求超时时间（秒）
         """
-        self.server_url = server_url.rstrip('/')
+        self.server_url = server_url.rstrip("/")
         self.timeout = timeout
         self.session_id = None
 
@@ -44,15 +45,10 @@ class FlareSolverrClient:
             bool: 是否创建成功
         """
         try:
-            data = {
-                "cmd": "sessions.create",
-                "proxy": proxy
-            }
+            data = {"cmd": "sessions.create", "proxy": proxy}
 
             response = requests.post(
-                f"{self.server_url}/v1",
-                json=data,
-                timeout=self.timeout
+                f"{self.server_url}/v1", json=data, timeout=self.timeout
             )
 
             if response.status_code == 200:
@@ -75,15 +71,10 @@ class FlareSolverrClient:
             return True
 
         try:
-            data = {
-                "cmd": "sessions.destroy",
-                "session": self.session_id
-            }
+            data = {"cmd": "sessions.destroy", "session": self.session_id}
 
             response = requests.post(
-                f"{self.server_url}/v1",
-                json=data,
-                timeout=self.timeout
+                f"{self.server_url}/v1", json=data, timeout=self.timeout
             )
 
             if response.status_code == 200:
@@ -100,9 +91,13 @@ class FlareSolverrClient:
             logger.error(f"FlareSolverr session destruction error: {e}")
             return False
 
-    def request_get(self, url: str, headers: Optional[Dict[str, str]] = None,
-                   cookies: Optional[Dict[str, str]] = None,
-                   max_timeout: int = 60000) -> Optional[Dict[str, Any]]:
+    def request_get(
+        self,
+        url: str,
+        headers: Optional[Dict[str, str]] = None,
+        cookies: Optional[Dict[str, str]] = None,
+        max_timeout: int = 60000,
+    ) -> Optional[Dict[str, Any]]:
         """
         通过FlareSolverr发送GET请求
 
@@ -116,11 +111,7 @@ class FlareSolverrClient:
             Dict: 包含响应内容的字典，或None如果失败
         """
         try:
-            data = {
-                "cmd": "request.get",
-                "url": url,
-                "maxTimeout": max_timeout
-            }
+            data = {"cmd": "request.get", "url": url, "maxTimeout": max_timeout}
 
             if self.session_id:
                 data["session"] = self.session_id
@@ -130,14 +121,10 @@ class FlareSolverrClient:
             #     data["headers"] = headers
 
             if cookies:
-                data["cookies"] = [
-                    {"name": k, "value": v} for k, v in cookies.items()
-                ]
+                data["cookies"] = [{"name": k, "value": v} for k, v in cookies.items()]
 
             response = requests.post(
-                f"{self.server_url}/v1",
-                json=data,
-                timeout=self.timeout
+                f"{self.server_url}/v1", json=data, timeout=self.timeout
             )
 
             if response.status_code == 200:
@@ -152,10 +139,14 @@ class FlareSolverrClient:
             logger.error(f"FlareSolverr request error: {e}")
             return None
 
-    def request_post(self, url: str, post_data: str,
-                    headers: Optional[Dict[str, str]] = None,
-                    cookies: Optional[Dict[str, str]] = None,
-                    max_timeout: int = 60000) -> Optional[Dict[str, Any]]:
+    def request_post(
+        self,
+        url: str,
+        post_data: str,
+        headers: Optional[Dict[str, str]] = None,
+        cookies: Optional[Dict[str, str]] = None,
+        max_timeout: int = 60000,
+    ) -> Optional[Dict[str, Any]]:
         """
         通过FlareSolverr发送POST请求
 
@@ -174,7 +165,7 @@ class FlareSolverrClient:
                 "cmd": "request.post",
                 "url": url,
                 "postData": post_data,
-                "maxTimeout": max_timeout
+                "maxTimeout": max_timeout,
             }
 
             if self.session_id:
@@ -185,14 +176,10 @@ class FlareSolverrClient:
             #     data["headers"] = headers
 
             if cookies:
-                data["cookies"] = [
-                    {"name": k, "value": v} for k, v in cookies.items()
-                ]
+                data["cookies"] = [{"name": k, "value": v} for k, v in cookies.items()]
 
             response = requests.post(
-                f"{self.server_url}/v1",
-                json=data,
-                timeout=self.timeout
+                f"{self.server_url}/v1", json=data, timeout=self.timeout
             )
 
             if response.status_code == 200:
@@ -211,9 +198,9 @@ class FlareSolverrClient:
 def cookie_str_to_dict(cookie_str: str) -> Dict[str, str]:
     """将cookie字符串转换为字典格式"""
     cookie_dict = {}
-    for item in cookie_str.split(';'):
-        if '=' in item:
-            key, value = item.split('=', 1)
+    for item in cookie_str.split(";"):
+        if "=" in item:
+            key, value = item.split("=", 1)
             cookie_dict[key.strip()] = value.strip()
     return cookie_dict
 
@@ -228,7 +215,7 @@ def get_flaresolverr_client(config: dict) -> Optional[FlareSolverrClient]:
     Returns:
         FlareSolverrClient: 客户端实例，或None如果未配置
     """
-    flaresolverr_config = config.get('flaresolverr')
+    flaresolverr_config = config.get("flaresolverr")
     if not flaresolverr_config:
         return None
 
@@ -237,11 +224,11 @@ def get_flaresolverr_client(config: dict) -> Optional[FlareSolverrClient]:
         return FlareSolverrClient(flaresolverr_config)
     elif isinstance(flaresolverr_config, dict):
         # 详细配置
-        server_url = flaresolverr_config.get('server_url')
+        server_url = flaresolverr_config.get("server_url")
         if not server_url:
             return None
 
-        timeout = flaresolverr_config.get('timeout', 60)
+        timeout = flaresolverr_config.get("timeout", 60)
         return FlareSolverrClient(server_url, timeout)
 
     return None
@@ -258,19 +245,19 @@ def should_use_flaresolverr(entry: SignInEntry, config: dict) -> bool:
     Returns:
         bool: 是否使用FlareSolverr
     """
-    flaresolverr_config = config.get('flaresolverr')
+    flaresolverr_config = config.get("flaresolverr")
     if not flaresolverr_config:
         return False
 
     # 检查全局启用设置
     if isinstance(flaresolverr_config, dict):
         # 检查是否全局启用
-        if flaresolverr_config.get('enable_all', False):
+        if flaresolverr_config.get("enable_all", False):
             return True
 
         # 检查站点特定设置
-        enabled_sites = flaresolverr_config.get('enabled_sites', [])
-        site_name = entry.get('site_name', '')
+        enabled_sites = flaresolverr_config.get("enabled_sites", [])
+        site_name = entry.get("site_name", "")
         return site_name in enabled_sites
 
     # 如果是字符串配置，默认不启用（需要在站点配置中明确指定）

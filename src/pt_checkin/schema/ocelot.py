@@ -1,7 +1,7 @@
 from abc import ABC
 
-from .private_torrent import PrivateTorrent
 from ..utils.value_handler import handle_infinite
+from .private_torrent import PrivateTorrent
 
 
 class Ocelot(PrivateTorrent, ABC):
@@ -9,37 +9,31 @@ class Ocelot(PrivateTorrent, ABC):
     @property
     def details_selector(self) -> dict:
         return {
-            'user_id': r'userdetails\.php\?id=(\d+)',
-            'detail_sources': {
-                'default': {
-                    'link': '/userdetails.php?id={}',
-                    'elements': {
-                        'bar': '#wrapper > div.mainheader > div > div.statusbar > div:nth-child(2)',
-                        'table': '.cblock-content'
-                    }
+            "user_id": r"userdetails\.php\?id=(\d+)",
+            "detail_sources": {
+                "default": {
+                    "link": "/userdetails.php?id={}",
+                    "elements": {
+                        "bar": "#wrapper > div.mainheader > div > div.statusbar > div:nth-child(2)",
+                        "table": ".cblock-content",
+                    },
                 }
             },
-            'details': {
-                'uploaded': {
-                    'regex': r'Uploaded.+?([\d.]+ ?[ZEPTGMk]?B)'
+            "details": {
+                "uploaded": {"regex": r"Uploaded.+?([\d.]+ ?[ZEPTGMk]?B)"},
+                "downloaded": {"regex": r"Downloaded.+?([\d.]+ ?[ZEPTGMk]?B)"},
+                "share_ratio": {
+                    "regex": r"Ratio.+?(Inf\.|[\d.]+)",
+                    "handle": handle_infinite,
                 },
-                'downloaded': {
-                    'regex': r'Downloaded.+?([\d.]+ ?[ZEPTGMk]?B)'
+                "points": {
+                    "regex": (r"Hello.+?\[.+?\][\s\S]+?(\d+)[\s\S]*?(Inf\.|[\d,.]+)", 2)
                 },
-                'share_ratio': {
-                    'regex': r'Ratio.+?(Inf\.|[\d.]+)',
-                    'handle': handle_infinite
+                "join_date": {
+                    "regex": r"Join.date.*?(\d{4}-\d{2}-\d{2})",
                 },
-                'points': {
-                    'regex': (r'Hello.+?\[.+?\][\s\S]+?(\d+)[\s\S]*?(Inf\.|[\d,.]+)', 2)
-                },
-                'join_date': {
-                    'regex': r'Join.date.*?(\d{4}-\d{2}-\d{2})',
-                },
-                'seeding': {
-                    'regex': r'Seeding (\d)+'
-                },
-                'leeching': None,
-                'hr': None
-            }
+                "seeding": {"regex": r"Seeding (\d)+"},
+                "leeching": None,
+                "hr": None,
+            },
         }

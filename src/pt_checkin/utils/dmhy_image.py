@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PIL import ImageChops, Image
+from PIL import Image, ImageChops
 
 RGB_BLACK = (0, 0, 0)
 
@@ -18,8 +18,14 @@ def check_analysis(image: Image.Image):
         return False
     width, height = image.size
 
-    pixel_points = [(0, height - 1), (1, height - 2), (width - 1, 0), (width - 2, 1), (width - 1, height - 1),
-                    (width - 2, height - 2)]
+    pixel_points = [
+        (0, height - 1),
+        (1, height - 2),
+        (width - 1, 0),
+        (width - 2, 1),
+        (width - 1, height - 1),
+        (width - 2, height - 2),
+    ]
     for point in pixel_points:
         if image.getpixel(point) == RGB_BLACK:
             return True
@@ -28,11 +34,13 @@ def check_analysis(image: Image.Image):
 
 def remove_date_string(image: Image.Image):
     width, height = image.size
-    p = Image.new('RGB', (276, 15), (0, 0, 0))
+    p = Image.new("RGB", (276, 15), (0, 0, 0))
     image.paste(p, (2, height - 32))
 
 
-def compare_images(image_a: Image.Image, image_b: Image.Image) -> tuple[Image.Image, Image.Image, Image.Image] | None:
+def compare_images(
+    image_a: Image.Image, image_b: Image.Image
+) -> tuple[Image.Image, Image.Image, Image.Image] | None:
     a_width, a_height = image_a.size
     image_a_compare = image_a.crop((0, 0, a_width, a_height - 45))
     b_width, b_height = image_b.size
@@ -46,8 +54,12 @@ def compare_images(image_a: Image.Image, image_b: Image.Image) -> tuple[Image.Im
 
 def get_split_point(image: Image.Image) -> tuple | None:
     width, height = image.size
-    blank_in_bottom_left = image.getpixel((0, height - 1)) == image.getpixel((1, height - 2)) == RGB_BLACK
-    blank_in_top_right = image.getpixel((width - 1, 0)) == image.getpixel((width - 2, 1)) == RGB_BLACK
+    blank_in_bottom_left = (
+        image.getpixel((0, height - 1)) == image.getpixel((1, height - 2)) == RGB_BLACK
+    )
+    blank_in_top_right = (
+        image.getpixel((width - 1, 0)) == image.getpixel((width - 2, 1)) == RGB_BLACK
+    )
 
     x = 0
     y = 0

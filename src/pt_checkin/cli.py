@@ -3,15 +3,16 @@
 PT签到工具 - CLI
 """
 import click
+
+from .base.log_manager import get_logger, init_logging
 from .core.config_manager import ConfigManager
-from .base.log_manager import init_logging
-from .base.log_manager import get_logger
 
 logger = get_logger(__name__)
 
+
 @click.group()
-@click.option('-c', '--config', default='config.yml', help='配置文件路径')
-@click.option('-v', '--verbose', is_flag=True, help='详细日志输出')
+@click.option("-c", "--config", default="config.yml", help="配置文件路径")
+@click.option("-v", "--verbose", is_flag=True, help="详细日志输出")
 @click.pass_context
 def cli(ctx, config: str, verbose: bool):
     """PT站点自动签到工具"""
@@ -19,14 +20,12 @@ def cli(ctx, config: str, verbose: bool):
     try:
         config_manager = ConfigManager(config)
         ctx.ensure_object(dict)
-        ctx.obj['config_manager'] = config_manager
+        ctx.obj["config_manager"] = config_manager
 
         # 使用新的日志管理器初始化日志系统
         logging_config = config_manager.get_logging_config()
         init_logging(
-            config=logging_config,
-            config_dir=config_manager.config_dir,
-            verbose=verbose
+            config=logging_config, config_dir=config_manager.config_dir, verbose=verbose
         )
 
         logger.info("程序初始化 - 完成")
@@ -38,29 +37,31 @@ def cli(ctx, config: str, verbose: bool):
 
 # ==================== 核心命令 ====================
 
+
 @cli.command()
-@click.option('--site', '-s', help='仅签到指定站点')
-@click.option('--force', is_flag=True, help='强制重新签到')
-@click.option('--dry-run', is_flag=True, help='模拟运行')
-@click.option('--debug', is_flag=True, help='调试模式')
+@click.option("--site", "-s", help="仅签到指定站点")
+@click.option("--force", is_flag=True, help="强制重新签到")
+@click.option("--dry-run", is_flag=True, help="模拟运行")
+@click.option("--debug", is_flag=True, help="调试模式")
 @click.pass_context
 def run(ctx, site: str, force: bool, dry_run: bool, debug: bool):
     """执行签到任务"""
-    config_manager = ctx.obj['config_manager']
+    config_manager = ctx.obj["config_manager"]
     if dry_run:
         print("🔍 模拟运行模式 - 不会实际执行签到")
     # 创建调度器并执行
     from .core.scheduler import TaskScheduler
+
     scheduler = TaskScheduler(config_manager)
 
     # 设置强制选项
     force_options = {}
     if force:
-        force_options['force_all'] = True
+        force_options["force_all"] = True
     if site:
-        force_options['force_sites'] = [site]
+        force_options["force_sites"] = [site]
     if debug:
-        force_options['debug_mode'] = True
+        force_options["debug_mode"] = True
         logger.info("🐛 调试模式已启用")
 
     try:
@@ -75,11 +76,12 @@ def run(ctx, site: str, force: bool, dry_run: bool, debug: bool):
 
 # ==================== 测试命令 ====================
 
+
 @cli.command()
 @click.pass_context
 def test(ctx):
     """测试配置文件"""
-    config_manager = ctx.obj['config_manager']
+    config_manager = ctx.obj["config_manager"]
     print("🔧 配置文件测试")
     print("=" * 50)
 
@@ -96,7 +98,7 @@ def test(ctx):
 
     # 测试百度OCR配置
     baidu_ocr = config_manager.get_baidu_ocr_config()
-    if baidu_ocr and baidu_ocr.get('app_id'):
+    if baidu_ocr and baidu_ocr.get("app_id"):
         print("🔑 百度OCR配置: ✅ 已配置")
     else:
         print("🔑 百度OCR配置: ❌ 未配置")
@@ -105,12 +107,12 @@ def test(ctx):
 
 
 @cli.command()
-@click.argument('site_name')
-@click.option('--debug', is_flag=True, help='启用调试模式')
+@click.argument("site_name")
+@click.option("--debug", is_flag=True, help="启用调试模式")
 @click.pass_context
 def test_site(ctx, site_name: str, debug: bool):
     """测试单个站点"""
-    config_manager = ctx.obj['config_manager']
+    config_manager = ctx.obj["config_manager"]
     if debug:
         print("🐛 调试模式已启用")
 
@@ -127,29 +129,32 @@ def test_site(ctx, site_name: str, debug: bool):
         print(f"🔧 站点配置: {site_config}")
     # 创建调度器并执行单站点测试
     from .core.scheduler import TaskScheduler
+
     scheduler = TaskScheduler(config_manager)
 
     # 临时修改配置只包含指定站点
-    original_sites = config_manager.config['sites']
-    config_manager.config['sites'] = {site_name: sites[site_name]}
+    original_sites = config_manager.config["sites"]
+    config_manager.config["sites"] = {site_name: sites[site_name]}
 
     try:
         scheduler.run_once()
     finally:
         # 恢复原始配置
-        config_manager.config['sites'] = original_sites
+        config_manager.config["sites"] = original_sites
 
 
 # ==================== 状态命令 ====================
 
+
 @cli.command()
-@click.option('--clear', is_flag=True, help='清除今日签到状态')
-@click.option('--clear-site', help='清除指定站点状态')
-@click.option('--show-failed', is_flag=True, help='显示失败统计')
+@click.option("--clear", is_flag=True, help="清除今日签到状态")
+@click.option("--clear-site", help="清除指定站点状态")
+@click.option("--show-failed", is_flag=True, help="显示失败统计")
 @click.pass_context
 def status(ctx, clear: bool, clear_site: str, show_failed: bool):
     """查看和管理签到状态"""
     from .core.signin_status import SignInStatusManager
+
     status_manager = SignInStatusManager()
     if clear:
         status_manager.clear_today_status()
@@ -166,14 +171,14 @@ def status(ctx, clear: bool, clear_site: str, show_failed: bool):
     print("=" * 50)
 
     summary = status_manager.get_today_summary()
-    if summary['total'] == 0:
+    if summary["total"] == 0:
         print("📝 今日暂无签到记录")
         return
 
-    for site_name, status_info in summary['sites'].items():
-        status_text = "✅ 成功" if status_info['status'] == 'success' else "❌ 失败"
-        message = status_info.get('message', '')
-        time_str = status_info.get('time', '')
+    for site_name, status_info in summary["sites"].items():
+        status_text = "✅ 成功" if status_info["status"] == "success" else "❌ 失败"
+        message = status_info.get("message", "")
+        time_str = status_info.get("time", "")
         print(f"  {site_name}: {status_text} - {message} ({time_str})")
 
     if show_failed:
@@ -190,58 +195,69 @@ def status(ctx, clear: bool, clear_site: str, show_failed: bool):
 
 # ==================== 通知命令 ====================
 
+
 @cli.command()
-@click.option('--format', '-f', type=click.Choice(['text', 'json']), default='text', help='输出格式')
-@click.option('--title-only', is_flag=True, help='仅返回标题')
-@click.option('--detailed', '-d', is_flag=True, help='显示详细信息（包含消息和详情）')
+@click.option(
+    "--format",
+    "-f",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="输出格式",
+)
+@click.option("--title-only", is_flag=True, help="仅返回标题")
+@click.option("--detailed", "-d", is_flag=True, help="显示详细信息（包含消息和详情）")
 @click.pass_context
 def get_notification(ctx, format: str, title_only: bool, detailed: bool):
     """获取最新签到结果通知消息"""
     # 使用便捷函数获取通知消息
     notification = get_notification_message(include_details=detailed)
 
-    if not notification['has_data']:
-        if format == 'json':
+    if not notification["has_data"]:
+        if format == "json":
             import json
-            result = {'title': '', 'content': '', 'has_data': False}
+
+            result = {"title": "", "content": "", "has_data": False}
             print(json.dumps(result, ensure_ascii=False))
         else:
             print("")  # 空输出表示无数据
         return
 
     if title_only:
-        print(notification['title'])
+        print(notification["title"])
         return
 
-    if format == 'json':
+    if format == "json":
         import json
+
         result = {
-            'title': notification['title'],
-            'content': notification['content'],
-            'has_data': True,
-            'summary': notification['summary']
+            "title": notification["title"],
+            "content": notification["content"],
+            "has_data": True,
+            "summary": notification["summary"],
         }
         print(json.dumps(result, ensure_ascii=False))
     else:
         print(f"📢 {notification['title']}")
         print("=" * 50)
-        print(notification['content'])
+        print(notification["content"])
 
 
 # ==================== 调试命令 ====================
 
+
 @cli.command()
-@click.option('--site', '-s', help='调试指定站点')
-@click.option('--show-config', is_flag=True, help='显示配置信息')
+@click.option("--site", "-s", help="调试指定站点")
+@click.option("--show-config", is_flag=True, help="显示配置信息")
 @click.pass_context
 def debug(ctx, site: str, show_config: bool):
     """调试模式"""
-    config_manager = ctx.obj['config_manager']
+    config_manager = ctx.obj["config_manager"]
     logger.info("=== 调试信息 ===")
 
     if show_config:
         logger.info("完整配置信息:")
         import json
+
         config_str = json.dumps(config_manager.config, indent=2, ensure_ascii=False)
         # 隐藏敏感信息
         config_str = config_str.replace('"cookie":', '"cookie": "[HIDDEN]",')
@@ -257,7 +273,7 @@ def debug(ctx, site: str, show_config: bool):
             logger.info(f"站点 {site} 配置:")
             site_config = sites[site]
             for key, value in site_config.items():
-                if key == 'cookie':
+                if key == "cookie":
                     logger.info(f"  {key}: [HIDDEN]")
                 else:
                     logger.info(f"  {key}: {value}")
@@ -271,10 +287,9 @@ def debug(ctx, site: str, show_config: bool):
 
 # ==================== 便捷函数 ====================
 
+
 def run_signin(
-    config_file: str = 'config.yml',
-    force: bool = False,
-    site: str | None = None
+    config_file: str = "config.yml", force: bool = False, site: str | None = None
 ) -> dict:
     """
     便捷的签到执行函数，供外部脚本调用
@@ -296,41 +311,35 @@ def run_signin(
         init_logging(
             config=logging_config,
             config_dir=config_manager.config_dir,
-            verbose=False  # 便捷函数默认不启用详细日志
+            verbose=False,  # 便捷函数默认不启用详细日志
         )
 
         # 创建调度器
         from .core.scheduler import TaskScheduler
+
         scheduler = TaskScheduler(config_manager)
 
         # 设置强制选项
         force_options = {}
         if force:
-            force_options['force_all'] = True
+            force_options["force_all"] = True
         if site:
-            force_options['force_site'] = site
+            force_options["force_site"] = site
 
         # 执行签到
         scheduler.run_once(force_options)
 
         # 获取结果
         from .core.signin_status import SignInStatusManager
+
         status_manager = SignInStatusManager()
         summary = status_manager.get_today_summary()
 
-        return {
-            'success': True,
-            'summary': summary,
-            'error': None
-        }
+        return {"success": True, "summary": summary, "error": None}
 
     except Exception as e:
         logger.error(f"签到执行失败: {e}")
-        return {
-            'success': False,
-            'summary': None,
-            'error': str(e)
-        }
+        return {"success": False, "summary": None, "error": str(e)}
 
 
 def get_notification_message(include_details: bool = False) -> dict:
@@ -349,36 +358,31 @@ def get_notification_message(include_details: bool = False) -> dict:
         status_manager = SignInStatusManager()
         summary = status_manager.get_today_summary()
 
-        if summary['total'] == 0:
-            return {
-                'has_data': False,
-                'title': '',
-                'content': '',
-                'summary': summary
-            }
+        if summary["total"] == 0:
+            return {"has_data": False, "title": "", "content": "", "summary": summary}
 
         # 构建通知内容
         success_sites = []
         failed_sites = []
 
-        for site_name, site_info in summary['sites'].items():
+        for site_name, site_info in summary["sites"].items():
             # 固定使用6个空格对齐
             alignment_spaces = "      "
 
-            if site_info['status'] == 'success':
-                result_msg = site_info.get('result', '成功')
-                signin_type = site_info.get('signin_type', '签到成功')
+            if site_info["status"] == "success":
+                result_msg = site_info.get("result", "成功")
+                signin_type = site_info.get("signin_type", "签到成功")
                 # 使用新的格式：站点名：具体状态
                 site_line = f"{site_name}：{signin_type}"
 
                 # 添加签到消息
-                if result_msg and result_msg != '成功':
+                if result_msg and result_msg != "成功":
                     site_line += f"\n{alignment_spaces}签到消息：{result_msg}"
 
                 # 如果需要详细信息，添加消息和详情
                 if include_details:
-                    messages = site_info.get('messages', '')
-                    details = site_info.get('details', '')
+                    messages = site_info.get("messages", "")
+                    details = site_info.get("details", "")
 
                     if messages:
                         site_line += f"\n{alignment_spaces}消息获取：成功"
@@ -387,16 +391,16 @@ def get_notification_message(include_details: bool = False) -> dict:
                         # 处理详情信息，提取关键信息
                         if isinstance(details, dict):
                             detail_parts = []
-                            if details.get('points'):
+                            if details.get("points"):
                                 detail_parts.append(f"G值: {details['points']}")
-                            if details.get('share_ratio'):
+                            if details.get("share_ratio"):
                                 detail_parts.append(f"分享率: {details['share_ratio']}")
-                            if details.get('uploaded'):
+                            if details.get("uploaded"):
                                 detail_parts.append(f"上传: {details['uploaded']}")
-                            if details.get('downloaded'):
+                            if details.get("downloaded"):
                                 detail_parts.append(f"下载: {details['downloaded']}")
                             if detail_parts:
-                                account_info = ' | '.join(detail_parts)
+                                account_info = " | ".join(detail_parts)
                                 site_line += f"\n{alignment_spaces}账户：{account_info}"
                         else:
                             details_str = str(details)[:100]
@@ -404,7 +408,7 @@ def get_notification_message(include_details: bool = False) -> dict:
 
                 success_sites.append(site_line)
             else:
-                reason = site_info.get('reason', '失败')
+                reason = site_info.get("reason", "失败")
                 # 使用新的格式：站点名：签到失败
                 site_line = f"{site_name}：签到失败"
                 site_line += f"\n{alignment_spaces}摘要：{reason}"
@@ -412,7 +416,7 @@ def get_notification_message(include_details: bool = False) -> dict:
                 failed_sites.append(site_line)
 
         # 生成标题
-        if summary['failed'] == 0:
+        if summary["failed"] == 0:
             title = f"PT签到成功 ({summary['success']}/{summary['total']})"
         else:
             title = f"PT签到完成 ({summary['success']}/{summary['total']})"
@@ -422,7 +426,7 @@ def get_notification_message(include_details: bool = False) -> dict:
             "📊 结果统计:",
             f"• 总计: {summary['total']} 个站点",
             f"• 成功: {summary['success']} 个",
-            f"• 失败: {summary['failed']} 个"
+            f"• 失败: {summary['failed']} 个",
         ]
 
         if success_sites:
@@ -434,20 +438,20 @@ def get_notification_message(include_details: bool = False) -> dict:
         content = "\n".join(content_lines)
 
         return {
-            'has_data': True,
-            'title': title,
-            'content': content,
-            'summary': summary
+            "has_data": True,
+            "title": title,
+            "content": content,
+            "summary": summary,
         }
 
     except Exception as e:
         logger.error(f"获取通知消息失败: {e}")
         return {
-            'has_data': False,
-            'title': '',
-            'content': '',
-            'summary': None,
-            'error': str(e)
+            "has_data": False,
+            "title": "",
+            "content": "",
+            "summary": None,
+            "error": str(e),
         }
 
 
@@ -456,5 +460,5 @@ def main():
     cli()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

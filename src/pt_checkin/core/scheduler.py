@@ -1,4 +1,5 @@
 """任务调度器"""
+
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
@@ -17,7 +18,7 @@ class TaskScheduler:
     def __init__(self, config_manager: ConfigManager):
         self.config_manager = config_manager
         # 状态文件保存到配置文件同级目录
-        status_file = config_manager.config_dir / 'signin_status.json'
+        status_file = config_manager.config_dir / "signin_status.json"
         self.status_manager = SignInStatusManager(str(status_file))
         self.running = False
 
@@ -27,13 +28,13 @@ class TaskScheduler:
         start_time = datetime.now()
 
         if force_options is None:
-            force_options = {'force_all': False, 'force_site': None}
+            force_options = {"force_all": False, "force_site": None}
 
         try:
             # 动态导入避免循环导入
             from .executor import create_sign_in_entries
-            # 移除notify导入，使用内置日志记录
 
+            # 移除notify导入，使用内置日志记录
             # 准备配置
             config = self.config_manager.prepare_config_for_executor()
             sites_config = self.config_manager.get_sites()
@@ -48,8 +49,10 @@ class TaskScheduler:
                 logger.warning("任务调度 - 条目创建: 未创建任何签到条目")
                 return
 
-            site_names = [entry['site_name'] for entry in entries]
-            logger.info(f"📝 任务调度 - 条目创建: 成功创建 {len(entries)} 个签到条目 {site_names}")
+            site_names = [entry["site_name"] for entry in entries]
+            logger.info(
+                f"📝 任务调度 - 条目创建: 成功创建 {len(entries)} 个签到条目 {site_names}"
+            )
 
             # 过滤今日条目和已签到条目
             date_now = str(datetime.now().date())
@@ -61,35 +64,37 @@ class TaskScheduler:
             retry_interval = self.config_manager.get_failed_retry_interval()
 
             for entry in entries:
-                if date_now not in entry['title']:
+                if date_now not in entry["title"]:
                     continue
 
-                site_name = entry['site_name']
+                site_name = entry["site_name"]
 
                 # 如果指定了特定站点，只处理指定的站点
-                force_sites = force_options.get('force_sites', [])
+                force_sites = force_options.get("force_sites", [])
                 if force_sites and site_name not in force_sites:
                     continue
 
                 # 检查是否需要强制签到
-                force_sites = force_options.get('force_sites', [])
-                should_force = force_options.get('force_all', False)
+                force_sites = force_options.get("force_sites", [])
+                should_force = force_options.get("force_all", False)
 
                 # 检查是否已签到
                 if not should_force and self.status_manager.is_signed_today(site_name):
                     status = self.status_manager.get_site_status(site_name)
-                    result = status.get('result', '已签到')
+                    result = status.get("result", "已签到")
                     if result:
                         skip_msg = f"{site_name} - 跳过签到: 今日已签到 ({result})"
                     else:
                         skip_msg = f"{site_name} - 跳过签到: 今日已签到"
                     logger.info(skip_msg)
-                    skipped_entries.append({
-                        'site': site_name,
-                        'reason': f"已签到 - {status.get('result', '')}",
-                        'time': status.get('time', ''),
-                        'type': 'signed'
-                    })
+                    skipped_entries.append(
+                        {
+                            "site": site_name,
+                            "reason": f"已签到 - {status.get('result', '')}",
+                            "time": status.get("time", ""),
+                            "type": "signed",
+                        }
+                    )
                     continue
 
                 # 检查失败次数限制
@@ -101,19 +106,21 @@ class TaskScheduler:
                     if should_skip:
                         failed_count = self.status_manager.get_failed_count(site_name)
                         logger.warning(f"{site_name} - 跳过签到: {skip_reason}")
-                        skipped_entries.append({
-                            'site': site_name,
-                            'reason': skip_reason,
-                            'time': '',
-                            'type': 'failed_too_much',
-                            'failed_count': failed_count
-                        })
+                        skipped_entries.append(
+                            {
+                                "site": site_name,
+                                "reason": skip_reason,
+                                "time": "",
+                                "type": "failed_too_much",
+                                "failed_count": failed_count,
+                            }
+                        )
                         continue
 
                 # 如果是强制签到，清除之前的状态（但保留失败次数）
                 if should_force:
                     self.status_manager.clear_site_status(site_name, True)
-                    if force_options.get('force_all'):
+                    if force_options.get("force_all"):
                         logger.info(f"{site_name} - 强制签到: 清除今日状态")
 
                 valid_entries.append(entry)
@@ -121,18 +128,20 @@ class TaskScheduler:
             if not valid_entries:
                 if skipped_entries:
                     skip_count = len(skipped_entries)
-                    logger.info(f"任务调度 - 执行结果: 所有站点今日已签到，跳过 {skip_count} 个站点")
+                    logger.info(
+                        f"任务调度 - 执行结果: 所有站点今日已签到，跳过 {skip_count} 个站点"
+                    )
                 else:
                     logger.info("任务调度 - 执行结果: 没有需要签到的条目")
                 return
 
-            valid_site_names = [entry['site_name'] for entry in valid_entries]
+            valid_site_names = [entry["site_name"] for entry in valid_entries]
             if len(valid_entries) == 1:
                 logger.info(f"📋 任务调度 - 开始执行站点 {valid_site_names[0]} 签到")
             else:
-                logger.info(f"📋 任务调度 - 开始执行 {len(valid_entries)} 个站点签到 {valid_site_names}")
-
-
+                logger.info(
+                    f"📋 任务调度 - 开始执行 {len(valid_entries)} 个站点签到 {valid_site_names}"
+                )
 
             # 执行签到（多线程执行）
             max_workers = self.config_manager.get_max_workers()
@@ -145,13 +154,15 @@ class TaskScheduler:
                 futures = []
                 # 提交所有任务到线程池
                 for entry in valid_entries:
-                    site_name = entry['site_name']
+                    site_name = entry["site_name"]
                     # 多线程执行时显示任务提交状态
                     if len(valid_entries) > 1:
                         logger.info(f"🚀 {site_name} - 任务已提交，等待执行")
                     else:
                         logger.info(f"🚀 {site_name} - 开始执行签到")
-                    future = executor.submit(self._sign_in_with_error_handling, entry, config)
+                    future = executor.submit(
+                        self._sign_in_with_error_handling, entry, config
+                    )
                     futures.append((entry, future))
 
                 # 等待所有任务完成
@@ -160,54 +171,64 @@ class TaskScheduler:
                         future.result()
                         if entry.failed:
                             failed_count += 1
-                            failed_results.append({
-                                'site': entry['site_name'],
-                                'reason': entry.reason
-                            })
+                            failed_results.append(
+                                {"site": entry["site_name"], "reason": entry.reason}
+                            )
                             # 记录签到失败状态
-                            site_name = entry['site_name']
-                            self.status_manager.record_signin_failed(site_name, entry.reason)
+                            site_name = entry["site_name"]
+                            self.status_manager.record_signin_failed(
+                                site_name, entry.reason
+                            )
                             logger.error(f"{site_name} - 签到失败: {entry.reason}")
                         else:
                             success_count += 1
-                            success_results.append({
-                                'site': entry['site_name'],
-                                'result': entry.get('result', '签到成功'),
-                                'messages': entry.get('messages', ''),
-                                'details': entry.get('details', ''),
-                                'messages_status': entry.get('messages_status', 'success'),
-                                'details_status': entry.get('details_status', 'success'),
-                                'messages_error': entry.get('messages_error', ''),
-                                'details_error': entry.get('details_error', ''),
-                                'signin_type': entry.get('signin_type', '签到成功')
-                            })
+                            success_results.append(
+                                {
+                                    "site": entry["site_name"],
+                                    "result": entry.get("result", "签到成功"),
+                                    "messages": entry.get("messages", ""),
+                                    "details": entry.get("details", ""),
+                                    "messages_status": entry.get(
+                                        "messages_status", "success"
+                                    ),
+                                    "details_status": entry.get(
+                                        "details_status", "success"
+                                    ),
+                                    "messages_error": entry.get("messages_error", ""),
+                                    "details_error": entry.get("details_error", ""),
+                                    "signin_type": entry.get("signin_type", "签到成功"),
+                                }
+                            )
                             # 记录签到成功状态
                             self.status_manager.record_signin_success(
-                                entry['site_name'],
-                                entry.get('result', '签到成功'),
-                                entry.get('messages', ''),
-                                entry.get('details', ''),
-                                entry.get('signin_type', '签到成功')
+                                entry["site_name"],
+                                entry.get("result", "签到成功"),
+                                entry.get("messages", ""),
+                                entry.get("details", ""),
+                                entry.get("signin_type", "签到成功"),
                             )
-                            site_name = entry['site_name']
-                            result = entry.get('result', '')
+                            site_name = entry["site_name"]
+                            result = entry.get("result", "")
                             logger.info(f"{site_name} - 签到成功: {result}")
 
                             # 记录消息和详情获取状态
-                            if entry.get('messages_status') == 'failed':
-                                msg_error = entry.get('messages_error', '')
-                                logger.warning(f"{site_name} - 消息获取失败: {msg_error}")
-                            if entry.get('details_status') == 'failed':
-                                detail_error = entry.get('details_error', '')
-                                logger.warning(f"{site_name} - 详情获取失败: {detail_error}")
+                            if entry.get("messages_status") == "failed":
+                                msg_error = entry.get("messages_error", "")
+                                logger.warning(
+                                    f"{site_name} - 消息获取失败: {msg_error}"
+                                )
+                            if entry.get("details_status") == "failed":
+                                detail_error = entry.get("details_error", "")
+                                logger.warning(
+                                    f"{site_name} - 详情获取失败: {detail_error}"
+                                )
                     except Exception as e:
                         failed_count += 1
-                        failed_results.append({
-                            'site': entry['site_name'],
-                            'reason': f"签到异常: {e}"
-                        })
+                        failed_results.append(
+                            {"site": entry["site_name"], "reason": f"签到异常: {e}"}
+                        )
                         # 记录签到异常状态
-                        site_name = entry['site_name']
+                        site_name = entry["site_name"]
                         error_msg = f"签到异常: {e}"
                         self.status_manager.record_signin_failed(site_name, error_msg)
                         logger.exception(f"{site_name} - 签到异常: {e}")
@@ -221,7 +242,7 @@ class TaskScheduler:
                 "📊 签到任务完成",
                 f"总计: {len(valid_entries)} 个站点 | 成功: {success_count} 个 | 失败: {failed_count} 个",
                 f"⏱️ 耗时: {duration:.2f} 秒",
-                ""
+                "",
             ]
 
             # 添加成功站点详情
@@ -232,41 +253,45 @@ class TaskScheduler:
                     alignment_spaces = "      "
 
                     # 站点名：具体状态
-                    signin_type = result.get('signin_type', '签到成功')
+                    signin_type = result.get("signin_type", "签到成功")
                     site_status = f"{result['site']}：{signin_type}"
                     notification_lines.append(site_status)
 
                     # 签到消息
-                    if result['result']:
+                    if result["result"]:
                         msg_line = f"{alignment_spaces}签到消息：{result['result']}"
                         notification_lines.append(msg_line)
 
                     # 消息获取状态（只显示失败的情况）
-                    if result.get('messages_status') == 'failed':
-                        msg_error = result.get('messages_error', '')
-                        error_line = f"{alignment_spaces}摘要：消息获取失败 - {msg_error}"
+                    if result.get("messages_status") == "failed":
+                        msg_error = result.get("messages_error", "")
+                        error_line = (
+                            f"{alignment_spaces}摘要：消息获取失败 - {msg_error}"
+                        )
                         notification_lines.append(error_line)
 
                     # 详情获取状态和内容（只显示失败或成功时的账户信息）
-                    if result.get('details_status') == 'failed':
-                        detail_error = result.get('details_error', '')
-                        detail_line = f"{alignment_spaces}摘要：详情获取失败 - {detail_error}"
+                    if result.get("details_status") == "failed":
+                        detail_error = result.get("details_error", "")
+                        detail_line = (
+                            f"{alignment_spaces}摘要：详情获取失败 - {detail_error}"
+                        )
                         notification_lines.append(detail_line)
-                    elif result['details']:
+                    elif result["details"]:
                         # 格式化详情信息为账户信息
-                        if isinstance(result['details'], dict):
+                        if isinstance(result["details"], dict):
                             detail_parts = []
-                            for key, value in result['details'].items():
-                                if key == 'points':
+                            for key, value in result["details"].items():
+                                if key == "points":
                                     detail_parts.append(f"G值: {value}")
-                                elif key == 'share_ratio':
+                                elif key == "share_ratio":
                                     detail_parts.append(f"分享率: {value}")
-                                elif key == 'uploaded':
+                                elif key == "uploaded":
                                     detail_parts.append(f"上传: {value}")
-                                elif key == 'downloaded':
+                                elif key == "downloaded":
                                     detail_parts.append(f"下载: {value}")
                             if detail_parts:
-                                account_info = ' | '.join(detail_parts)
+                                account_info = " | ".join(detail_parts)
                                 account_line = f"{alignment_spaces}账户：{account_info}"
                                 notification_lines.append(account_line)
 
@@ -289,16 +314,19 @@ class TaskScheduler:
             # 添加跳过的站点信息
             if skipped_entries:
                 # 分类显示跳过的站点
-                signed_skipped = [s for s in skipped_entries if s.get('type') == 'signed']
-                failed_skipped = [s for s in skipped_entries
-                                  if s.get('type') == 'failed_too_much']
+                signed_skipped = [
+                    s for s in skipped_entries if s.get("type") == "signed"
+                ]
+                failed_skipped = [
+                    s for s in skipped_entries if s.get("type") == "failed_too_much"
+                ]
 
                 if signed_skipped:
                     notification_lines.append("⏭️ 跳过已签到:")
                     for skipped in signed_skipped:
-                        site = skipped['site']
-                        reason = skipped['reason']
-                        time_str = skipped['time']
+                        site = skipped["site"]
+                        reason = skipped["reason"]
+                        time_str = skipped["time"]
                         skip_line = f"  • {site}: {reason} ({time_str})"
                         notification_lines.append(skip_line)
                     notification_lines.append("")
@@ -306,22 +334,24 @@ class TaskScheduler:
                 if failed_skipped:
                     notification_lines.append("🚫 跳过失败过多:")
                     for skipped in failed_skipped:
-                        failed_count = skipped.get('failed_count', 0)
-                        site = skipped['site']
-                        reason = skipped['reason']
+                        failed_count = skipped.get("failed_count", 0)
+                        site = skipped["site"]
+                        reason = skipped["reason"]
                         fail_line = f"  • {site}: {reason} (失败{failed_count}次)"
                         notification_lines.append(fail_line)
                     notification_lines.append("")
 
             # 添加时间信息
-            time_str = start_time.strftime('%Y-%m-%d %H:%M:%S')
+            time_str = start_time.strftime("%Y-%m-%d %H:%M:%S")
             time_line = f"🕐 执行时间: {time_str}"
             notification_lines.append(time_line)
 
             result_message = "\n".join(notification_lines)
 
             skip_count = len(skipped_entries)
-            stats = f"成功 {success_count} 个，失败 {failed_count} 个，跳过 {skip_count} 个"
+            stats = (
+                f"成功 {success_count} 个，失败 {failed_count} 个，跳过 {skip_count} 个"
+            )
             logger.info(f"任务调度 - 执行完成: {stats}，耗时 {duration:.2f} 秒")
 
             # 记录签到结果到日志
@@ -330,19 +360,18 @@ class TaskScheduler:
             # 清理旧记录
             self.status_manager.cleanup_old_records()
 
-
-
         except Exception as e:
             logger.exception(f"任务调度 - 执行异常: {e}")
 
     def _sign_in_with_error_handling(self, entry: SignInEntry, config: dict) -> None:
         """带错误处理的签到"""
-        site_name = entry.get('site_name', 'unknown')
+        site_name = entry.get("site_name", "unknown")
         try:
             # 记录实际开始执行
             logger.info(f"⚡ {site_name} - 开始执行签到任务")
 
             from .executor import sign_in
+
             sign_in(entry, config)
 
             # 记录执行完成
@@ -350,8 +379,10 @@ class TaskScheduler:
                 logger.info(f"✅ {site_name} - 签到任务完成")
             else:
                 # 根据错误类型生成详细的问题描述
-                error_type = getattr(entry, '_error_type', 'general')
-                problem_description = self._get_problem_description(entry.reason, error_type)
+                error_type = getattr(entry, "_error_type", "general")
+                problem_description = self._get_problem_description(
+                    entry.reason, error_type
+                )
                 logger.warning(f"⚠️ {site_name} - {problem_description}")
 
         except Exception as e:
@@ -363,35 +394,37 @@ class TaskScheduler:
 
         # 错误类型映射
         error_type_descriptions = {
-            'connectivity': '连接问题',
-            'authentication': '认证问题',
-            'general': '签到问题'
+            "connectivity": "连接问题",
+            "authentication": "认证问题",
+            "general": "签到问题",
         }
 
         # 常见错误关键词映射
         error_keywords = {
-            '站点维护中': '站点正在维护，暂时无法签到',
-            '站点连接失败': '无法连接到站点服务器',
-            '需要人工验证Turnstile': '检测到Turnstile验证，需要手动完成',
-            '无法获取签到页面': '签到页面访问失败',
-            '页面没有验证码表单': '签到页面结构异常，缺少验证码表单',
-            '验证码识别失败': '验证码识别失败，可能需要人工处理',
-            '无法获取验证码图片': '验证码图片下载失败',
-            'PIL库未安装': '系统缺少图像处理库',
-            '验证码处理失败': '验证码处理过程出现异常'
+            "站点维护中": "站点正在维护，暂时无法签到",
+            "站点连接失败": "无法连接到站点服务器",
+            "需要人工验证Turnstile": "检测到Turnstile验证，需要手动完成",
+            "无法获取签到页面": "签到页面访问失败",
+            "页面没有验证码表单": "签到页面结构异常，缺少验证码表单",
+            "验证码识别失败": "验证码识别失败，可能需要人工处理",
+            "无法获取验证码图片": "验证码图片下载失败",
+            "PIL库未安装": "系统缺少图像处理库",
+            "验证码处理失败": "验证码处理过程出现异常",
         }
 
         # 提取错误关键信息
         for keyword, description in error_keywords.items():
             if keyword in reason:
-                error_category = error_type_descriptions.get(error_type, '未知问题')
+                error_category = error_type_descriptions.get(error_type, "未知问题")
                 return f"{error_category}: {description}"
 
         # 如果没有匹配的关键词，使用通用描述
-        error_category = error_type_descriptions.get(error_type, '未知问题')
+        error_category = error_type_descriptions.get(error_type, "未知问题")
         return f"{error_category}: {reason}"
 
-    def run_once(self, force_options: dict = None, debug_mode: bool = False, **kwargs) -> None:
+    def run_once(
+        self, force_options: dict = None, debug_mode: bool = False, **kwargs
+    ) -> None:
         """立即执行一次签到任务"""
         logger.info("任务调度 - 立即执行: 签到任务")
 
@@ -399,7 +432,7 @@ class TaskScheduler:
         if force_options is None:
             force_options = {}
         if debug_mode:
-            force_options['debug_mode'] = True
+            force_options["debug_mode"] = True
 
         # 合并其他kwargs到force_options
         force_options.update(kwargs)

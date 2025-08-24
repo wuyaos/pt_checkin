@@ -5,15 +5,12 @@ import json
 from typing import Final
 from urllib.parse import urljoin
 
-from dateutil.parser import parse
-from requests import Response, request
+from requests import Response
 
-from ..core.entry import SignInEntry
 from ..base.request import NetworkState
-
-from ..base.sign_in import check_final_state, SignState, Work
+from ..base.sign_in import SignState, Work, check_final_state
+from ..core.entry import SignInEntry
 from ..schema.nexusphp import NexusPHP
-from ..utils import url_recorder
 from ..utils.net_utils import get_module_name
 from ..utils.value_handler import handle_infinite
 
@@ -49,18 +46,14 @@ class MainClass(NexusPHP):
         my_peer_status_response = self.request(entry, 'POST', urljoin(self.URL, self.MY_PEER_STATUS))
         my_peer_status_response_json = my_peer_status_response.json()
         entry['details'] = {
-            'uploaded': f'{details_response_json.get("data").get("memberCount").get("uploaded") or 0} B'.replace(',',
-                                                                                                                 ''),
-            'downloaded': f'{details_response_json.get("data").get("memberCount").get("downloaded") or 0} B'.replace(
-                ',',
-                ''),
+                        'uploaded': f'{details_response_json.get("data").get("memberCount").get("uploaded") or 0} B'.replace(',',  # noqa: E501''),
+                        'downloaded': f'{details_response_json.get("data").get("memberCount").get("downloaded") or 0} B'.replace(  # noqa: E501',',''),
             'share_ratio': handle_infinite(
                 str(details_response_json.get('data').get('memberCount').get('shareRate') or 0).replace(',', '')),
             'points': str(details_response_json.get('data').get('memberCount').get('bonus') or 0).replace(
                 ',', ''),
             'seeding': str(my_peer_status_response_json.get('data').get('seeder') or 0).replace(',', ''),
-            'leeching': str(my_peer_status_response_json.get('data').get('leecher') or 0).replace(',',
-                                                                                                  ''),
+            'leeching': str(my_peer_status_response_json.get('data').get('leecher') or 0).replace(',', ''),
             'hr': '*'
         }
 
@@ -107,5 +100,3 @@ class MainClass(NexusPHP):
     def get_messages(self, entry: SignInEntry, config: dict) -> None:
         return
 
-    @classmethod
-    

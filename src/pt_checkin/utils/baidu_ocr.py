@@ -26,19 +26,19 @@ lock = threading.Semaphore(qps)
 
 
 def get_client(entry: SignInEntry, config: dict) -> AipOcr | None:
-    if 'aipocr' not in config:
-        entry.fail_with_prefix('aipocr not set in config')
+    if "aipocr" not in config:
+        entry.fail_with_prefix("aipocr not set in config")
         return None
 
-    app_id = config['aipocr'].get('app_id')
-    api_key = config['aipocr'].get('api_key')
-    secret_key = config['aipocr'].get('secret_key')
+    app_id = config["aipocr"].get("app_id")
+    api_key = config["aipocr"].get("api_key")
+    secret_key = config["aipocr"].get("secret_key")
 
     if not (AipOcr and Image):
-        entry.fail_with_prefix('Dependency does not exist: [baidu-aip, pillow]')
+        entry.fail_with_prefix("Dependency does not exist: [baidu-aip, pillow]")
         return None
     if not (app_id and api_key and secret_key):
-        entry.fail_with_prefix('AipOcr not set')
+        entry.fail_with_prefix("AipOcr not set")
         return None
     return AipOcr(app_id, api_key, secret_key)
 
@@ -49,23 +49,25 @@ def get_jap_ocr(img: Image.Image, entry: SignInEntry, config: dict) -> str | Non
     img_byte_arr = BytesIO()
 
     if img.mode == "P":
-        img = img.convert('RGB')
+        img = img.convert("RGB")
 
-    img.save(img_byte_arr, format='JPEG')
+    img.save(img_byte_arr, format="JPEG")
     try:
         with lock:
-            result = client.basicAccurate(img_byte_arr.getvalue(), {'language_type': 'JAP'})
+            result = client.basicAccurate(
+                img_byte_arr.getvalue(), {"language_type": "JAP"}
+            )
     except Exception as e:
-        entry.fail_with_prefix(f'baidu ocr error: {e}')
+        entry.fail_with_prefix(f"baidu ocr error: {e}")
         return None
     logger.info(result)
-    if result.get('error_msg'):
-        entry.fail_with_prefix(result.get('error_msg'))
+    if result.get("error_msg"):
+        entry.fail_with_prefix(result.get("error_msg"))
         return None
-    text = ''
-    for words_list in result.get('words_result'):
-        text += words_list.get('words')
-    return ''.join(re.findall(r'[\u2E80-\u9FFF]', text))
+    text = ""
+    for words_list in result.get("words_result"):
+        text += words_list.get("words")
+    return "".join(re.findall(r"[\u2E80-\u9FFF]", text))
 
 
 def get_ocr_code(img: Image.Image, entry: SignInEntry, config: dict) -> tuple:
@@ -83,30 +85,32 @@ def get_ocr_code(img: Image.Image, entry: SignInEntry, config: dict) -> tuple:
             if noise := _detect_noise(img, i, j, width, height):
                 img.putpixel((i, j), (255, 255, 255))
     img_byte_arr = BytesIO()
-    img.save(img_byte_arr, format='png')
+    img.save(img_byte_arr, format="png")
     try:
         with lock:
             # 使用basicGeneral方法，效果更好，专门针对英文验证码
-            result = client.basicGeneral(img_byte_arr.getvalue(), {"language_type": "ENG"})
+            result = client.basicGeneral(
+                img_byte_arr.getvalue(), {"language_type": "ENG"}
+            )
     except Exception as e:
-        entry.fail_with_prefix(f'baidu ocr error: {e}')
+        entry.fail_with_prefix(f"baidu ocr error: {e}")
         return None, None
     logger.info(result)
-    if result.get('error_msg'):
-        entry.fail_with_prefix(result.get('error_msg'))
+    if result.get("error_msg"):
+        entry.fail_with_prefix(result.get("error_msg"))
         return None, None
 
     # 检查OCR结果
-    if not result.get('words_result') or len(result['words_result']) == 0:
-        entry.fail_with_prefix('OCR failed: No text recognized in image')
+    if not result.get("words_result") or len(result["words_result"]) == 0:
+        entry.fail_with_prefix("OCR failed: No text recognized in image")
         return None, img_byte_arr.getvalue()
 
-    code = re.sub('\\W', '', result['words_result'][0]['words'])
+    code = re.sub("\\W", "", result["words_result"][0]["words"])
     code = code.upper()
 
     # 验证验证码长度
     if len(code) == 0:
-        entry.fail_with_prefix('OCR failed: Empty text recognized')
+        entry.fail_with_prefix("OCR failed: Empty text recognized")
         return None, img_byte_arr.getvalue()
 
     return code, img_byte_arr.getvalue()
@@ -117,7 +121,9 @@ def cleanup_captcha_image(image_path: str, site_name: str = "") -> None:
     try:
         if os.path.exists(image_path):
             os.remove(image_path)
-            logger.debug(f"{site_name} - 已清理验证码图片: {os.path.basename(image_path)}")
+            logger.debug(
+                f"{site_name} - 已清理验证码图片: {os.path.basename(image_path)}"
+            )
     except Exception as e:
         logger.warning(f"{site_name} - 清理验证码图片失败: {e}")
 
